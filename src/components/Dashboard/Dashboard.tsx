@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Container, 
-  Grid, 
-  Card, 
-  CardContent, 
-  Typography, 
+import {
+  Container,
+  Grid,
+  Card,
+  CardContent,
+  Typography,
   CircularProgress,
   Box,
   Table,
@@ -14,164 +14,217 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Chip,
   Divider,
-  Alert
+  Alert,
+  Tabs,
+  Tab,
+  TablePagination,
+  Button
 } from '@mui/material';
 import { supabase } from '../../services/supabaseClient';
 
-// Types for our dashboard data
-type IndustryMetrics = {
-  industry: string;
-  total_articles: number;
-  total_procedures: number;
-  total_categories: number;
-  total_providers: number;
-  article_growth_rate: number;
-  procedure_growth_rate: number;
-  provider_growth_rate: number;
-}[];
-
-type Procedure = {
+// Define interfaces based on the actual database schema
+interface DentalProcedure {
   id: number;
-  name: string;
-  industry: string;
-  article_mentions: number;
-  avg_expected_growth: number;
-}[];
+  procedure_name?: string;
+  name?: string;
+  description?: string;
+  expanded_description?: string;
+  category_id?: number;
+  category?: string;
+  procedure_category_id?: number;
+  clinical_category?: string;
+  clinical_category_id?: number;
+  market_size_2025_usd_millions?: number;
+  yearly_growth_percentage?: number;
+  average_cost_usd?: number;
+  complexity?: string;
+  procedure_duration_min?: number;
+  recovery_time_days?: number;
+  patient_satisfaction_score?: number;
+  risks?: string;
+  contraindications?: string;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: any;
+}
+
+interface AestheticProcedure {
+  id: number;
+  procedure_name?: string;
+  name?: string;
+  description?: string;
+  category?: string;
+  clinical_category?: string;
+  average_cost_usd?: number;
+  yearly_growth_percentage?: number;
+  downtime?: string;
+  number_of_sessions?: number;
+  results_duration?: string;
+  body_areas_applicable?: string;
+  skin_types_applicable?: string;
+  patient_satisfaction_score?: number;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: any;
+}
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
+  <div role="tabpanel" hidden={value !== index}>
+    {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+  </div>
+);
+
+function a11yProps(index: number) {
+  return { id: `tab-${index}`, 'aria-controls': `tabpanel-${index}` };
+}
 
 const Dashboard: React.FC = () => {
-  const [industryMetrics, setIndustryMetrics] = useState<IndustryMetrics>([]);
-  const [procedures, setProcedures] = useState<Procedure>([]);
-  const [loading, setLoading] = useState(true);
+  const [dentalProcedures, setDentalProcedures] = useState<DentalProcedure[]>([]);
+  const [aestheticProcedures, setAestheticProcedures] = useState<AestheticProcedure[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [tabValue, setTabValue] = useState<number>(0);
+
+  // Pagination state
+  const [dentalPage, setDentalPage] = useState(0);
+  const [dentalRowsPerPage, setDentalRowsPerPage] = useState(20);
+  const [aestheticPage, setAestheticPage] = useState(0);
+  const [aestheticRowsPerPage, setAestheticRowsPerPage] = useState(20);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      
       try {
-        setLoading(true);
-        console.log('Starting to fetch dashboard data...');
+        // Try multiple possible table names with detailed error logging
+        console.log('Attempting to fetch dental procedures...');
+        let dentalResponse = await supabase.from('dental_procedures').select('*');
         
-        // Check if Supabase client is properly initialized
-        if (!supabase) {
-          throw new Error('Supabase client is not initialized');
+        // If the first attempt fails, try the view
+        if (dentalResponse.error) {
+          console.log('Error with dental_procedures table, trying v_dental_procedures view...');
+          dentalResponse = await supabase.from('v_dental_procedures').select('*');
+          
+          // If that fails too, try all_procedures with filtering
+          if (dentalResponse.error) {
+            console.log('Error with v_dental_procedures view, trying all_procedures with filtering...');
+            dentalResponse = await supabase.from('all_procedures').select('*').eq('industry', 'dental');
+          }
         }
         
-        console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL ? 'Set' : 'Not set');
+        console.log('Attempting to fetch aesthetic procedures...');
+        let aestheticResponse = await supabase.from('aesthetic_procedures').select('*');
         
-        // First, try to fetch data from views
-        try {
-          // Try to fetch from views first
-          console.log('Attempting to fetch from views...');
+        // If the first attempt fails, try the view
+        if (aestheticResponse.error) {
+          console.log('Error with aesthetic_procedures table, trying v_aesthetic_procedures view...');
+          aestheticResponse = await supabase.from('aesthetic_procedures_view').select('*');
           
-          const [
-            { data: metricsData, error: metricsError },
-            { data: proceduresData, error: proceduresError }
-          ] = await Promise.all([
-            supabase.from('v_dashboard_industry_metrics').select('*'),
-            supabase.from('v_dashboard_procedures').select('*').limit(10)
-          ]);
-          
-          if (metricsError) throw metricsError;
-          if (proceduresError) throw proceduresError;
-          
-          console.log('Successfully fetched data from views');
-          setIndustryMetrics(metricsData || []);
-          setProcedures(proceduresData || []);
-          return;
-          
-        } catch (viewError) {
-          console.warn('Failed to fetch from views, falling back to direct table queries', viewError);
-          
-          // Fallback to direct table queries
-          console.log('Fetching data directly from tables...');
-          
-          // Get industry metrics from articles table
-          const { data: articlesData, error: articlesError } = await supabase
-            .from('articles')
-            .select('*');
-            
-          if (articlesError) throw new Error(`Failed to load articles: ${articlesError.message}`);
-          
-          // Process articles data to get metrics
-          const industryMetrics = processIndustryMetrics(articlesData || []);
-          setIndustryMetrics(industryMetrics);
-          
-          // Get procedures data
-          const { data: proceduresData, error: proceduresError } = await supabase
-            .from('procedures')
-            .select('*')
-            .limit(10);
-            
-          if (proceduresError) throw new Error(`Failed to load procedures: ${proceduresError.message}`);
-          
-          // Process procedures data
-          const processedProcedures = (proceduresData || []).map(p => ({
-            id: p.id,
-            name: p.name,
-            industry: p.industry || 'General',
-            article_mentions: p.mention_count || 0,
-            avg_expected_growth: p.expected_growth_rate || 0
-          }));
-          
-          setProcedures(processedProcedures);
+          // If that fails too, try all_procedures with filtering
+          if (aestheticResponse.error) {
+            console.log('Error with aesthetic_procedures_view, trying all_procedures with filtering...');
+            aestheticResponse = await supabase.from('all_procedures').select('*').eq('industry', 'aesthetic');
+          }
         }
         
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-        console.error('Error in fetchDashboardData:', err);
-        setError(`Failed to load dashboard data: ${errorMessage}`);
+        // Final error check after all attempts
+        if (dentalResponse.error) throw new Error(`Dental procedures: ${dentalResponse.error.message}`);
+        if (aestheticResponse.error) throw new Error(`Aesthetic procedures: ${aestheticResponse.error.message}`);
+        
+        console.log('Dental data:', dentalResponse.data);
+        console.log('Aesthetic data:', aestheticResponse.data);
+        
+        // Normalize field names to handle different schema structures
+        const dentalProcs = (dentalResponse.data || []).map(proc => ({
+          ...proc,
+          id: proc.id || Math.random(),
+          name: proc.procedure_name || proc.name || proc.title || '',
+          category: proc.category || proc.procedure_category || '',
+          clinical_category: proc.clinical_category || proc.specialty || '',
+          average_cost_usd: proc.average_cost_usd || proc.cost || proc.price || 0,
+          yearly_growth_percentage: proc.yearly_growth_percentage || proc.growth_rate || 0
+        }));
+        
+        const aestheticProcs = (aestheticResponse.data || []).map(proc => ({
+          ...proc,
+          id: proc.id || Math.random(),
+          name: proc.procedure_name || proc.name || proc.title || '',
+          category: proc.category || proc.procedure_category || '',
+          average_cost_usd: proc.average_cost_usd || proc.cost || proc.cost_range || 0,
+          yearly_growth_percentage: proc.yearly_growth_percentage || proc.trend_score || 0,
+          downtime: proc.downtime || '',
+          body_areas_applicable: proc.body_areas_applicable || proc.body_area || ''
+        }));
+        
+        console.log(`Loaded ${dentalProcs.length} dental procedures`);
+        console.log(`Loaded ${aestheticProcs.length} aesthetic procedures`);
+        
+        setDentalProcedures(dentalProcs);
+        setAestheticProcedures(aestheticProcs);
+      } catch (e: any) {
+        console.error('Error fetching data:', e);
+        setError(`Failed to load procedures: ${e.message}`);
       } finally {
         setLoading(false);
       }
     };
-    
-    // Helper function to process industry metrics from articles
-    const processIndustryMetrics = (articles: any[]) => {
-      const industryMap = new Map();
-      
-      articles.forEach(article => {
-        const industry = article.industry || 'General';
-        if (!industryMap.has(industry)) {
-          industryMap.set(industry, {
-            industry,
-            total_articles: 0,
-            total_procedures: 0,
-            total_categories: 0,
-            total_providers: 0,
-            article_growth_rate: Math.floor(Math.random() * 20) - 5, // Random growth for demo
-            procedure_growth_rate: Math.floor(Math.random() * 20) - 5,
-            provider_growth_rate: Math.floor(Math.random() * 20) - 5
-          });
-        }
-        
-        const industryData = industryMap.get(industry);
-        industryData.total_articles += 1;
-        // Add more processing as needed based on your data structure
-      });
-      
-      return Array.from(industryMap.values());
-    };
-    
-    fetchDashboardData();
+
+    fetchData();
   }, []);
 
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-US').format(num);
+  // Pagination handlers
+  const handleDentalChangePage = (_: unknown, newPage: number) => {
+    setDentalPage(newPage);
   };
 
-  const formatPercentage = (num: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'percent',
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1
-    }).format(num / 100);
+  const handleDentalChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setDentalRowsPerPage(parseInt(event.target.value, 10));
+    setDentalPage(0);
+  };
+
+  const handleAestheticChangePage = (_: unknown, newPage: number) => {
+    setAestheticPage(newPage);
+  };
+
+  const handleAestheticChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setAestheticRowsPerPage(parseInt(event.target.value, 10));
+    setAestheticPage(0);
+  };
+
+  // Get paginated records
+  const paginatedDentalProcedures = dentalProcedures.slice(
+    dentalPage * dentalRowsPerPage,
+    dentalPage * dentalRowsPerPage + dentalRowsPerPage
+  );
+
+  const paginatedAestheticProcedures = aestheticProcedures.slice(
+    aestheticPage * aestheticRowsPerPage,
+    aestheticPage * aestheticRowsPerPage + aestheticRowsPerPage
+  );
+
+  // Safe rendering function for any field
+  const safeRender = (value: any, isPercent = false, decimalPlaces = 1) => {
+    if (value === null || value === undefined || value === '') return '-';
+    if (isPercent) {
+      const numValue = parseFloat(String(value));
+      return isNaN(numValue) ? '-' : `${numValue.toFixed(decimalPlaces)}%`;
+    }
+    return String(value);
   };
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+        <CircularProgress size={60} thickness={4} />
+        <Typography variant="h6" sx={{ ml: 2 }}>Loading all procedures...</Typography>
       </Box>
     );
   }
@@ -179,106 +232,159 @@ const Dashboard: React.FC = () => {
   if (error) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Alert severity="error">{error}</Alert>
+        <Alert severity="error" sx={{ my: 2 }}>
+          {error}
+        </Alert>
+        <Button 
+          variant="contained" 
+          color="primary" 
+          onClick={() => window.location.reload()}
+          sx={{ mt: 2 }}
+        >
+          Retry
+        </Button>
       </Container>
     );
   }
 
+  // Calculate categories count safely
+  const dentalCategories = new Set();
+  dentalProcedures.forEach(p => {
+    if (p.category) dentalCategories.add(p.category);
+  });
+
+  const aestheticCategories = new Set();
+  aestheticProcedures.forEach(p => {
+    if (p.category) aestheticCategories.add(p.category);
+  });
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
+      <Typography variant="h4" gutterBottom align="center" sx={{ fontWeight: 'bold', mb: 4 }}>
         Market Intelligence Dashboard
       </Typography>
-      
-      {/* Industry Metrics */}
-      <Typography variant="h6" gutterBottom sx={{ mt: 4, mb: 2 }}>
-        Industry Overview
-      </Typography>
+
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {industryMetrics.map((metric) => (
-          <Grid item xs={12} md={6} lg={4} key={metric.industry}>
-            <Card elevation={3}>
-              <CardContent>
-                <Typography variant="h6" color="primary" gutterBottom>
-                  {metric.industry}
-                </Typography>
-                <Divider sx={{ my: 1 }} />
-                
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Articles: {formatNumber(metric.total_articles)}
-                    </Typography>
-                    <Typography variant="caption" color={metric.article_growth_rate >= 0 ? 'success.main' : 'error.main'}>
-                      {metric.article_growth_rate >= 0 ? '↑' : '↓'} {Math.abs(metric.article_growth_rate)}%
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Procedures: {formatNumber(metric.total_procedures)}
-                    </Typography>
-                    <Typography variant="caption" color={metric.procedure_growth_rate >= 0 ? 'success.main' : 'error.main'}>
-                      {metric.procedure_growth_rate >= 0 ? '↑' : '↓'} {Math.abs(metric.procedure_growth_rate)}%
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Categories: {formatNumber(metric.total_categories)}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Providers: {formatNumber(metric.total_providers)}
-                    </Typography>
-                    <Typography variant="caption" color={metric.provider_growth_rate >= 0 ? 'success.main' : 'error.main'}>
-                      {metric.provider_growth_rate >= 0 ? '↑' : '↓'} {Math.abs(metric.provider_growth_rate)}%
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+        <Grid item xs={12} md={6}>
+          <Card elevation={3} sx={{ height: '100%' }}>
+            <CardContent>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#2196f3' }}>Dental Procedures</Typography>
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="h6">Total: {dentalProcedures.length} procedures</Typography>
+              <Typography variant="body1">Categories: {dentalCategories.size}</Typography>
+              <Typography variant="body1">Data completeness: 30-40%</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card elevation={3} sx={{ height: '100%' }}>
+            <CardContent>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#f50057' }}>Aesthetic Procedures</Typography>
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="h6">Total: {aestheticProcedures.length} procedures</Typography>
+              <Typography variant="body1">Categories: {aestheticCategories.size}</Typography>
+              <Typography variant="body1">Data completeness: 10-98% (varies by field)</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
 
-      {/* Top Procedures */}
-      <Typography variant="h6" gutterBottom sx={{ mt: 4, mb: 2 }}>
-        Top Procedures by Mentions
-      </Typography>
-      <TableContainer component={Paper} elevation={3}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Procedure</TableCell>
-              <TableCell>Industry</TableCell>
-              <TableCell align="right">Mentions</TableCell>
-              <TableCell align="right">Growth</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {procedures.map((procedure) => (
-              <TableRow key={procedure.id}>
-                <TableCell>{procedure.name}</TableCell>
-                <TableCell>
-                  <Chip 
-                    label={procedure.industry} 
-                    size="small" 
-                    color={procedure.industry === 'Dental' ? 'primary' : 'secondary'}
-                  />
-                </TableCell>
-                <TableCell align="right">{procedure.article_mentions}</TableCell>
-                <TableCell align="right">
-                  <Typography color={procedure.avg_expected_growth >= 0 ? 'success.main' : 'error.main'}>
-                    {formatPercentage(procedure.avg_expected_growth)}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      
-      {/* Add more dashboard sections here */}
+      <Card elevation={4}>
+        <Tabs 
+          value={tabValue} 
+          onChange={(_, v) => setTabValue(v)} 
+          variant="fullWidth"
+          sx={{ 
+            '& .MuiTab-root': { fontWeight: 'bold', fontSize: '1rem' },
+            bgcolor: '#f5f5f5'
+          }}
+        >
+          <Tab label={`Dental Procedures (${dentalProcedures.length})`} {...a11yProps(0)} />
+          <Tab label={`Aesthetic Procedures (${aestheticProcedures.length})`} {...a11yProps(1)} />
+        </Tabs>
+
+        <TabPanel value={tabValue} index={0}>
+          <TableContainer component={Paper} elevation={0}>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Clinical Category</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Cost (USD)</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Growth %</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Complexity</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Satisfaction</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paginatedDentalProcedures.map((procedure, index) => (
+                  <TableRow key={`dental-${procedure.id || index}`} hover>
+                    <TableCell>{safeRender(procedure.name)}</TableCell>
+                    <TableCell>{safeRender(procedure.category)}</TableCell>
+                    <TableCell>{safeRender(procedure.clinical_category)}</TableCell>
+                    <TableCell>{procedure.average_cost_usd ? `$${procedure.average_cost_usd.toLocaleString()}` : '-'}</TableCell>
+                    <TableCell>{procedure.yearly_growth_percentage ? `${procedure.yearly_growth_percentage.toFixed(1)}%` : '-'}</TableCell>
+                    <TableCell>{safeRender(procedure.complexity)}</TableCell>
+                    <TableCell>{procedure.patient_satisfaction_score || '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            rowsPerPageOptions={[10, 20, 40, 100]}
+            component="div"
+            count={dentalProcedures.length}
+            rowsPerPage={dentalRowsPerPage}
+            page={dentalPage}
+            onPageChange={handleDentalChangePage}
+            onRowsPerPageChange={handleDentalChangeRowsPerPage}
+            sx={{ borderTop: '1px solid #e0e0e0' }}
+          />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={1}>
+          <TableContainer component={Paper} elevation={0}>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Cost (USD)</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Downtime</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Growth %</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Body Area</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Sessions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paginatedAestheticProcedures.map((procedure, index) => (
+                  <TableRow key={`aesthetic-${procedure.id || index}`} hover>
+                    <TableCell>{safeRender(procedure.name)}</TableCell>
+                    <TableCell>{safeRender(procedure.category)}</TableCell>
+                    <TableCell>{procedure.average_cost_usd ? `$${procedure.average_cost_usd.toLocaleString()}` : '-'}</TableCell>
+                    <TableCell>{safeRender(procedure.downtime)}</TableCell>
+                    <TableCell>{procedure.yearly_growth_percentage ? `${procedure.yearly_growth_percentage.toFixed(1)}%` : '-'}</TableCell>
+                    <TableCell>{safeRender(procedure.body_areas_applicable)}</TableCell>
+                    <TableCell>{procedure.number_of_sessions || '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            rowsPerPageOptions={[20, 50, 100, 220]}
+            component="div"
+            count={aestheticProcedures.length}
+            rowsPerPage={aestheticRowsPerPage}
+            page={aestheticPage}
+            onPageChange={handleAestheticChangePage}
+            onRowsPerPageChange={handleAestheticChangeRowsPerPage}
+            sx={{ borderTop: '1px solid #e0e0e0' }}
+          />
+        </TabPanel>
+      </Card>
     </Container>
   );
 };
