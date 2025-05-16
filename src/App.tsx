@@ -1,38 +1,68 @@
-import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
-import { CssBaseline, CircularProgress, Box } from '@mui/material';
-import { SupabaseProvider } from '@repo/supabase-client';
-import { theme } from './theme';
-import { routes } from './routes';
+import React from 'react';
+import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import Dashboard from './components/Dashboard/Dashboard';
 
-// Environment variables for Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Create a theme instance
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+    background: {
+      default: '#f5f5f5',
+    },
+  },
+  typography: {
+    fontFamily: [
+      '-apple-system',
+      'BlinkMacSystemFont',
+      '"Segoe UI"',
+      'Roboto',
+      '"Helvetica Neue"',
+      'Arial',
+      'sans-serif',
+      '"Apple Color Emoji"',
+      '"Segoe UI Emoji"',
+      '"Segoe UI Symbol"',
+    ].join(','),
+    h1: {
+      fontWeight: 600,
+    },
+    h2: {
+      fontWeight: 500,
+    },
+  },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          transition: 'transform 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+          },
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          borderRadius: 8,
+        },
+      },
+    },
+  },
+});
 
 const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <SupabaseProvider supabaseUrl={supabaseUrl} supabaseKey={supabaseKey}>
-        <Router>
-          <Suspense fallback={
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-              <CircularProgress />
-            </Box>
-          }>
-            <Routes>
-              {routes.map((route) => (
-                <Route
-                  key={route.path}
-                  path={route.path}
-                  element={<route.element />}
-                />
-              ))}
-            </Routes>
-          </Suspense>
-        </Router>
-      </SupabaseProvider>
+      <Dashboard />
     </ThemeProvider>
   );
 };

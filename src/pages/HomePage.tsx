@@ -3,13 +3,12 @@ import { Container, Typography, Box, Grid, CircularProgress } from '@mui/materia
 import { FeaturedProcedures } from '../components/procedures/FeaturedProcedures';
 import { CategoriesList } from '../components/procedures/CategoriesList';
 import { Category, Procedure } from '../types';
-import { useSupabase } from '@repo/supabase-client';
+import { supabase } from '../services/supabaseClient';
 
 const HomePage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProcedures, setFeaturedProcedures] = useState<Procedure[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const supabase = useSupabase();
 
   useEffect(() => {
     const fetchData = async () => {
