@@ -44,9 +44,34 @@ const NewsCard: React.FC<NewsCardProps> = ({
     ? 'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?q=80&w=1000&auto=format&fit=crop' 
     : 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=1000&auto=format&fit=crop';
 
+  // Function to validate URL
+  const isValidUrl = (urlString: string | undefined): boolean => {
+    if (!urlString) return false;
+    try {
+      new URL(urlString);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  };
+
+  // Only use URL if it's valid, otherwise prevent navigation
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (!isValidUrl(url)) {
+      e.preventDefault();
+      console.log('Invalid or missing URL');
+    }
+  };
+
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardActionArea component="a" href={url || '#'} target="_blank" rel="noopener noreferrer">
+      <CardActionArea 
+        component="a" 
+        href={isValidUrl(url) ? url : '#'} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        onClick={handleCardClick}>
+
         <CardMedia
           component="img"
           height="140"
