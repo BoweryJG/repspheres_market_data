@@ -57,12 +57,18 @@ export interface CategoryHierarchy {
   name: string;
   description?: string;
   icon?: string;
+  icon_name?: string;
+  color_code?: string;
   market_size_usd_millions?: number;
   yearly_growth_percentage?: number;
   procedure_count?: number;
   subcategories?: CategoryHierarchy[];
   parent_id?: number | null;
   industry?: 'dental' | 'aesthetic' | 'both';
+  applicable_to?: 'dental' | 'aesthetic' | 'both';
+  display_order?: number;
+  is_featured?: boolean;
+  avg_growth_rate?: number;
 }
 
 export interface DentalProcedure {
