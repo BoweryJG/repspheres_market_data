@@ -1,31 +1,60 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Container,
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  CircularProgress,
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Divider,
-  Alert,
-  Switch,
-  TablePagination,
-  Button,
-  Chip,
-  LinearProgress,
-  Tooltip
-} from '@mui/material';
+// Material UI core components
+import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
+import Grid from '@mui/material/Grid';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import Divider from '@mui/material/Divider';
+import Alert from '@mui/material/Alert';
+import Switch from '@mui/material/Switch';
+import TablePagination from '@mui/material/TablePagination';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import LinearProgress from '@mui/material/LinearProgress';
+import Tooltip from '@mui/material/Tooltip';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
+
+// Material UI navigation components
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import IconButton from '@mui/material/IconButton';
+import Drawer from '@mui/material/Drawer';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+
+// Material UI hooks
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
+
+// Material UI icons
+import MenuIcon from '@mui/icons-material/Menu';
+import CloseIcon from '@mui/icons-material/Close';
+import CategoryIcon from '@mui/icons-material/Category';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+
+// Local imports
+import Logo from '../../assets/logo.svg';
 import { supabase } from '../../services/supabaseClient';
 import { DentalCategory, AestheticCategory } from '../../types';
 import NewsDashboard from '../News/NewsDashboard';
+import CategoryHierarchyView from './CategoryHierarchyViewFixed2';
 
 // Define sort configuration type
 type SortConfig = {
@@ -54,9 +83,58 @@ interface CategoryHierarchy {
   isExpanded?: boolean;
   procedureCount?: number;
 }
-import CategoryHierarchyView from './CategoryHierarchyViewFixed2';
 
 const Dashboard: React.FC = () => {
+  // Responsive menubar and drawer
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const navLinks: { label: string; href: string }[] = [
+    { label: 'Home', href: '/' },
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Market Data', href: '/market' },
+  ];
+
+  const Menubar = (
+    <AppBar position="sticky" elevation={3} sx={{
+      background: 'linear-gradient(90deg, #0f2027 0%, #2c5364 100%)',
+      borderRadius: 3,
+      mb: 3,
+    }}>
+      <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', px: { xs: 1, sm: 3 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box component="img" src={Logo} alt="RepSpheres Logo" sx={{ height: 36, mr: 1 }} />
+          <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 1, color: '#fff' }}>
+            RepSpheres
+          </Typography>
+        </Box>
+        {isMobile ? (
+          <IconButton edge="end" color="inherit" onClick={() => setDrawerOpen(true)}>
+            <MenuIcon />
+          </IconButton>
+        ) : (
+          <Box sx={{ display: 'flex', gap: 3 }}>
+            {navLinks.map((link: { label: string; href: string }) => (
+              <Button key={link.label} component="a" href={link.href} sx={{ color: '#fff', fontWeight: 600, fontSize: '1rem' }}>
+                {link.label}
+              </Button>
+            ))}
+          </Box>
+        )}
+      </Toolbar>
+      <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+        <Box sx={{ width: 220, pt: 4 }} role="presentation" onClick={() => setDrawerOpen(false)}>
+          <List>
+            {navLinks.map((link: { label: string; href: string }) => (
+              <ListItem button key={link.label} component="a" href={link.href}>
+                <ListItemText primary={link.label} />
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      </Drawer>
+    </AppBar>
+  );
   // State for procedures and companies
   const [dentalProcedures, setDentalProcedures] = useState<any[]>([]);
   const [aestheticProcedures, setAestheticProcedures] = useState<any[]>([]);
@@ -83,6 +161,11 @@ const Dashboard: React.FC = () => {
     field: 'name',
     direction: 'asc'
   });
+  
+  // Procedure detail modal state
+  const [selectedProcedure, setSelectedProcedure] = useState<any>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<number>(0);
 
   // Pagination state for procedures
   const [dentalPage, setDentalPage] = useState(0);
@@ -534,6 +617,49 @@ const Dashboard: React.FC = () => {
     );
   };
 
+  // Tab panel component for procedure detail modal
+  interface TabPanelProps {
+    children?: React.ReactNode;
+    index: number;
+    value: number;
+  }
+  
+  const TabPanel = (props: TabPanelProps) => {
+    const { children, value, index, ...other } = props;
+  
+    return (
+      <div
+        role="tabpanel"
+        hidden={value !== index}
+        id={`procedure-tabpanel-${index}`}
+        aria-labelledby={`procedure-tab-${index}`}
+        {...other}
+      >
+        {value === index && (
+          <Box sx={{ py: 2 }}>
+            {children}
+          </Box>
+        )}
+      </div>
+    );
+  };
+  
+  // Modal control functions
+  const handleOpenDetailModal = (procedure: any) => {
+    setSelectedProcedure(procedure);
+    setDetailModalOpen(true);
+    setActiveTab(0);
+  };
+
+  const handleCloseDetailModal = () => {
+    setDetailModalOpen(false);
+  };
+
+  // Tab change handler
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+  };
+  
   // Calculate current companies page data
   const currentDentalCompanies = useMemo(() => {
     return dentalCompanies.slice(
@@ -570,52 +696,62 @@ const Dashboard: React.FC = () => {
           variant="contained" 
           color="primary" 
           onClick={() => window.location.reload()}
-          sx={{ mt: 2 }}
         >
           Retry
         </Button>
       </Container>
     );
   }
-  
+
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 8 }}>
-      <Typography variant="h4" gutterBottom>
-        {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Procedures Dashboard
-      </Typography>
-      
-      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
-        <Typography component="span" sx={{ mr: 1 }}>Dental</Typography>
-        <Switch
-          checked={selectedIndustry === 'aesthetic'}
-          onChange={(e) => {
-            setSelectedIndustry(e.target.checked ? 'aesthetic' : 'dental');
-            setSelectedCategory(null);
-          }}
-          color="primary"
-        />
-        <Typography component="span" sx={{ ml: 1 }}>Aesthetic</Typography>
-      </Box>
-      
-      {/* Main content grid */}
-      <Grid container spacing={3}>
-        {/* Left sidebar with categories hierarchy */}
-        <Grid item xs={12} md={3}>
-          <CategoryHierarchyView
-            categories={categoryHierarchy}
-            selectedIndustry={selectedIndustry}
-            selectedCategory={selectedCategory}
-            onSelectCategory={handleCategorySelect}
-            loading={categoriesLoading}
-          />
-        </Grid>
+    <Box sx={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%)',
+      pb: { xs: 2, md: 6 }
+    }}>
+      {Menubar}
+      <Container maxWidth="xl" sx={{ mt: { xs: 2, sm: 4 }, mb: { xs: 4, md: 8 }, p: { xs: 0.5, sm: 2 }, borderRadius: 3, boxShadow: { xs: 0, md: 4 }, background: '#fff' }}>
+        <Box>
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 800, color: '#183153', letterSpacing: 1, textAlign: { xs: 'center', md: 'left' }, pt: 2 }}>
+            {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Procedures Dashboard
+          </Typography>
         
-        {/* Main content area */}
-        <Grid item xs={12} md={9}>
-          {/* Procedures section */}
-          <Card variant="outlined" sx={{ mb: 3 }}>
+          <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: { xs: 'center', md: 'flex-start' }, gap: 2 }}>
+            <Typography component="span" sx={{ mr: 1, fontWeight: 600, color: '#1a3a5d' }}>Dental</Typography>
+            <Switch
+              checked={selectedIndustry === 'aesthetic'}
+              onChange={(e) => {
+                setSelectedIndustry(e.target.checked ? 'aesthetic' : 'dental');
+                setSelectedCategory(null);
+              }}
+              color="primary"
+              sx={{ transform: { xs: 'scale(1.2)', sm: 'scale(1)' } }}
+            />
+            <Typography component="span" sx={{ ml: 1, fontWeight: 600, color: '#d72660' }}>Aesthetic</Typography>
+          </Box>
+      
+          {/* Main content grid */}
+          <Grid container spacing={3}>
+            {/* Left sidebar with categories hierarchy */}
+            <Grid item xs={12} md={3}>
+              <Box sx={{ height: '100%', background: { xs: 'none', md: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' }, borderRadius: 3, p: { xs: 1, md: 2 }, boxShadow: { xs: 0, md: 2 } }}>
+                <CategoryHierarchyView
+                  categories={categoryHierarchy}
+                  selectedIndustry={selectedIndustry}
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={handleCategorySelect}
+                  loading={categoriesLoading}
+                />
+              </Box>
+            </Grid>
+        
+            {/* Main content area */}
+            <Grid item xs={12} md={9}>
+              <Box sx={{ height: '100%', p: { xs: 0, md: 2 }, borderRadius: 3, background: { xs: 'none', md: 'linear-gradient(135deg, #f8fafc 0%, #e9e9f0 100%)' }, boxShadow: { xs: 0, md: 2 } }}>
+                {/* Procedures section */}
+          <Card variant="outlined" sx={{ mb: 3, borderRadius: 3, boxShadow: 4, background: 'linear-gradient(120deg, #f8fafc 40%, #e9e9f0 100%)' }}>
             <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2, gap: 1 }}>
                 <Typography variant="h6" color="primary" gutterBottom>
                   {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Procedures
                   {selectedCategory && (
@@ -655,7 +791,16 @@ const Dashboard: React.FC = () => {
                   </TableHead>
                   <TableBody>
                     {(selectedIndustry === 'dental' ? currentDentalProcedures : currentAestheticProcedures).map((proc) => (
-                      <TableRow key={proc.id}>
+                      <TableRow 
+                        key={proc.id}
+                        onClick={() => handleOpenDetailModal(proc)}
+                        sx={{ 
+                          cursor: 'pointer',
+                          '&:hover': { 
+                            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                          }
+                        }}   
+                      >
                         <TableCell>
                           <Tooltip title={proc.description || 'No description available'}>
                             <Typography variant="body2">{proc.name}</Typography>
@@ -837,10 +982,339 @@ const Dashboard: React.FC = () => {
                 }
               />
             </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Container>
+                </Card>
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+      {/* Procedure Detail Modal */}
+      <Dialog
+        open={detailModalOpen}
+        onClose={handleCloseDetailModal}
+        maxWidth="md"
+        fullWidth
+        aria-labelledby="procedure-detail-dialog-title"
+        PaperProps={{
+          sx: {
+            borderRadius: '8px',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+          }
+        }}
+      >
+        {selectedProcedure && (
+          <>
+            <DialogTitle 
+              id="procedure-detail-dialog-title" 
+              sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                bgcolor: '#f8f9fa',
+                borderBottom: '1px solid #eaeaea'
+              }}
+            >
+              <Typography variant="h6" component="div" sx={{ fontWeight: 600, color: '#2c3e50' }}>
+                {selectedProcedure.name || selectedProcedure.procedure_name}
+              </Typography>
+              <IconButton
+                aria-label="close"
+                onClick={handleCloseDetailModal}
+                sx={{ color: '#94a3b8' }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent sx={{ py: 3 }}>
+              {/* Basic info chips at the top */}
+              <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                <Chip 
+                  icon={<CategoryIcon />} 
+                  label={`Category: ${selectedProcedure.category || 'N/A'}`} 
+                  variant="outlined" 
+                  sx={{ 
+                    bgcolor: 'rgba(25, 118, 210, 0.05)',
+                    borderColor: 'primary.main',
+                    color: 'primary.main',
+                    fontWeight: 500
+                  }}
+                />
+                
+                {selectedProcedure.yearly_growth_percentage !== null && selectedProcedure.yearly_growth_percentage !== undefined && (
+                  <Chip 
+                    icon={<TrendingUpIcon />} 
+                    label={`Growth: ${selectedProcedure.yearly_growth_percentage.toFixed(1)}%`} 
+                    variant="outlined" 
+                    sx={{ 
+                      bgcolor: selectedProcedure.yearly_growth_percentage > 0 ? 'rgba(46, 125, 50, 0.05)' : 'rgba(211, 47, 47, 0.05)',
+                      borderColor: selectedProcedure.yearly_growth_percentage > 0 ? 'success.main' : 'error.main',
+                      color: selectedProcedure.yearly_growth_percentage > 0 ? 'success.main' : 'error.main',
+                      fontWeight: 500
+                    }}
+                  />
+                )}
+                
+                {selectedProcedure.average_cost_usd !== null && selectedProcedure.average_cost_usd !== undefined && (
+                  <Chip 
+                    icon={<AttachMoneyIcon />} 
+                    label={`Avg. Cost: $${selectedProcedure.average_cost_usd.toLocaleString()}`} 
+                    variant="outlined" 
+                    sx={{ 
+                      bgcolor: 'rgba(2, 136, 209, 0.05)',
+                      borderColor: 'info.main',
+                      color: 'info.main',
+                      fontWeight: 500
+                    }}
+                  />
+                )}
+              </Box>
+              
+              {/* Tabs for different sections */}
+              <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+                <Tabs 
+                  value={activeTab} 
+                  onChange={handleTabChange} 
+                  aria-label="procedure detail tabs"
+                  sx={{
+                    '& .MuiTab-root': {
+                      fontWeight: 500,
+                      textTransform: 'none',
+                      fontSize: '0.95rem',
+                    },
+                    '& .Mui-selected': {
+                      color: 'primary.main',
+                    }
+                  }}
+                >
+                  <Tab label="Overview" id="procedure-tab-0" aria-controls="procedure-tabpanel-0" />
+                  <Tab label="Technical Details" id="procedure-tab-1" aria-controls="procedure-tabpanel-1" />
+                  <Tab label="Market Data" id="procedure-tab-2" aria-controls="procedure-tabpanel-2" />
+                </Tabs>
+              </Box>
+              
+              {/* Overview Tab */}
+              <TabPanel value={activeTab} index={0}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: '#2c3e50' }}>
+                      Description
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#4a5568' }}>
+                      {selectedProcedure.description || selectedProcedure.expanded_description || 'No description available.'}
+                    </Typography>
+                  </Grid>
+                  
+                  {selectedIndustry === 'aesthetic' && selectedProcedure.body_areas_applicable && (
+                    <Grid item xs={12} sm={6}>
+                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
+                          Body Areas
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
+                          {selectedProcedure.body_areas_applicable}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+                  
+                  {selectedIndustry === 'aesthetic' && selectedProcedure.downtime && (
+                    <Grid item xs={12} sm={6}>
+                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
+                          Downtime
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
+                          {selectedProcedure.downtime}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+                  
+                  {selectedIndustry === 'dental' && selectedProcedure.cpt_cdt_code && (
+                    <Grid item xs={12} sm={6}>
+                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
+                          CDT Code
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
+                          {selectedProcedure.cpt_cdt_code}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+                </Grid>
+              </TabPanel>
+              
+              {/* Technical Details Tab */}
+              <TabPanel value={activeTab} index={1}>
+                <Grid container spacing={3}>
+                  {selectedProcedure.procedure_duration_min && (
+                    <Grid item xs={12} sm={6}>
+                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
+                          Procedure Duration
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
+                          {selectedProcedure.procedure_duration_min} minutes
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+                  
+                  {selectedProcedure.recovery_time_days && (
+                    <Grid item xs={12} sm={6}>
+                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
+                          Recovery Time
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
+                          {selectedProcedure.recovery_time_days} days
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+                  
+                  {selectedProcedure.complexity && (
+                    <Grid item xs={12} sm={6}>
+                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
+                          Complexity
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
+                          {selectedProcedure.complexity}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+                  
+                  {selectedProcedure.patient_satisfaction_score && (
+                    <Grid item xs={12} sm={6}>
+                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
+                          Patient Satisfaction
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <LinearProgress 
+                            variant="determinate" 
+                            value={selectedProcedure.patient_satisfaction_score * 10} 
+                            sx={{ 
+                              flexGrow: 1, 
+                              mr: 2, 
+                              height: 10, 
+                              borderRadius: 5,
+                              backgroundColor: 'rgba(0,0,0,0.1)',
+                              '& .MuiLinearProgress-bar': {
+                                backgroundColor: 'primary.main',
+                              }
+                            }}
+                          />
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                            {selectedProcedure.patient_satisfaction_score}/10
+                          </Typography>
+                        </Box>
+                      </Paper>
+                    </Grid>
+                  )}
+                  
+                  {selectedProcedure.risks && (
+                    <Grid item xs={12}>
+                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
+                          Risks
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
+                          {selectedProcedure.risks}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+                  
+                  {selectedProcedure.contraindications && (
+                    <Grid item xs={12}>
+                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
+                          Contraindications
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
+                          {selectedProcedure.contraindications}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+                </Grid>
+              </TabPanel>
+              
+              {/* Market Data Tab */}
+              <TabPanel value={activeTab} index={2}>
+                <Grid container spacing={3}>
+                  {selectedProcedure.market_size_2025_usd_millions && (
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Paper elevation={0} sx={{ p: 3, backgroundColor: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
+                          Market Size 2025
+                        </Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                          {selectedProcedure.market_size_2025_usd_millions >= 1000 
+                            ? `$${(selectedProcedure.market_size_2025_usd_millions/1000).toFixed(1)}B` 
+                            : `$${selectedProcedure.market_size_2025_usd_millions.toLocaleString()}M`}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+                  
+                  {selectedProcedure.yearly_growth_percentage !== null && selectedProcedure.yearly_growth_percentage !== undefined && (
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Paper elevation={0} sx={{ p: 3, backgroundColor: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
+                          Growth Rate
+                        </Typography>
+                        <Typography 
+                          variant="h5" 
+                          sx={{ 
+                            fontWeight: 700, 
+                            color: selectedProcedure.yearly_growth_percentage > 0 ? 'success.main' : 'error.main' 
+                          }}
+                        >
+                          {selectedProcedure.yearly_growth_percentage.toFixed(1)}%
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+                  
+                  {selectedProcedure.average_cost_usd && (
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Paper elevation={0} sx={{ p: 3, backgroundColor: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
+                          Average Cost
+                        </Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 700, color: 'info.main' }}>
+                          ${selectedProcedure.average_cost_usd.toLocaleString()}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+                </Grid>
+              </TabPanel>
+            </DialogContent>
+            <DialogActions sx={{ p: 2, borderTop: '1px solid #eaeaea' }}>
+              <Button 
+                onClick={handleCloseDetailModal} 
+                variant="contained" 
+                disableElevation
+                sx={{ 
+                  textTransform: 'none', 
+                  px: 3,
+                  borderRadius: '6px',
+                  fontWeight: 500
+                }}
+              >
+                Close
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+      </Container>
+    </Box>
   );
 };
 
