@@ -1,6 +1,6 @@
 import React from 'react';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import Dashboard from './components/Dashboard/DashboardFixed';
+import Dashboard from './components/Dashboard/Dashboard';
 
 // Create a theme instance
 const theme = createTheme({
