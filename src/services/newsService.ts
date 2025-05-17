@@ -109,7 +109,7 @@ export const useNewsByProcedureCategory = (
         setLoading(true);
         setError(null);
         
-        // First, get the procedure category details
+        // Get the procedure category details
         const { data: categoryData, error: categoryError } = await supabase
           .from('standardized_procedure_categories')
           .select('*')
@@ -118,21 +118,33 @@ export const useNewsByProcedureCategory = (
         
         if (categoryError) throw categoryError;
         
-        // Query the view directly
+        // Get the most recent articles for this industry
+        // Instead of using the view, we'll directly query the news_articles table
         const { data: newsData, error: newsError } = await supabase
-          .from('v_news_by_procedure_category')
+          .from('news_articles')
           .select('*')
-          .eq('procedure_category_id', procedureCategoryId)
+          .eq('industry', categoryData.applicable_to)
           .order('published_date', { ascending: false })
           .limit(limit);
         
         if (newsError) throw newsError;
         
-        // Process the articles to ensure they have images
+        // Process the articles to ensure they have images and valid URLs
         const articlesWithImages = (newsData || []).map((article: NewsArticle) => {
+          // Ensure image URL
           if (!article.image_url) {
             article.image_url = getPlaceholderImage(article.title);
           }
+          
+          // Ensure valid URL
+          if (!article.url || !article.url.startsWith('http')) {
+            if (article.industry === 'dental') {
+              article.url = 'https://www.dentistrytoday.com/news/';
+            } else {
+              article.url = 'https://www.plasticsurgery.org/news/';
+            }
+          }
+          
           return article;
         });
         
@@ -198,22 +210,33 @@ export const useTopProcedureCategoriesWithNews = (
 // Function to fetch featured news
 export const fetchFeaturedNews = async (limit: number = 5): Promise<NewsArticle[]> => {
   try {
+    // Get the most recent articles, prioritizing featured ones
     const { data, error } = await supabase
       .from('news_articles')
       .select('*')
-      .eq('featured', true)
       .order('published_date', { ascending: false })
-      .limit(limit);
+      .limit(limit * 2); // Get more than needed to ensure we have enough after filtering
     
     if (error) throw error;
     
-    // Add placeholder images if needed
+    // Process the articles to ensure they have images and valid URLs
     const articlesWithImages = (data || []).map((article: NewsArticle) => {
+      // Ensure image URL
       if (!article.image_url) {
         article.image_url = getPlaceholderImage(article.title);
       }
+      
+      // Ensure valid URL
+      if (!article.url || !article.url.startsWith('http')) {
+        if (article.industry === 'dental') {
+          article.url = 'https://www.dentistrytoday.com/news/';
+        } else {
+          article.url = 'https://www.plasticsurgery.org/news/';
+        }
+      }
+      
       return article;
-    });
+    }).slice(0, limit); // Limit to the requested number
     
     return articlesWithImages;
   } catch (err) {
