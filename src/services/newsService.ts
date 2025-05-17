@@ -1,11 +1,5 @@
 import { supabase } from './supabaseClient';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-
-// News proxy service URL - change this to your Render URL when deployed
-const NEWS_PROXY_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://repspheres-news-proxy.onrender.com' 
-  : 'http://localhost:3001';
 
 // Types
 export interface NewsArticle {
@@ -77,16 +71,27 @@ export const useNewsByIndustry = (industry: 'dental' | 'aesthetic', limit: numbe
   return { articles, loading, error };
 };
 
-// Helper function to generate image for an article
-export const generateImageForArticle = async (prompt: string): Promise<string> => {
-  try {
-    const response = await axios.post(`${NEWS_PROXY_URL}/api/news/generate-image`, { prompt });
-    return response.data.imageUrl;
-  } catch (error) {
-    console.error('Error generating image:', error);
-    // Return a default image if generation fails
-    return 'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?q=80&w=1000&auto=format&fit=crop';
-  }
+// Helper function to return a placeholder image for an article
+export const getPlaceholderImage = (title: string): string => {
+  // Array of placeholder images
+  const placeholderImages = [
+    'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1595003500447-88ce9a0c0144?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1571942676516-bcab84649e44?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1556228578-8c89e6adf883?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?q=80&w=1000&auto=format&fit=crop'
+  ];
+  
+  // Use a hash of the title to select a consistent image for the same title
+  const hash = title.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const index = hash % placeholderImages.length;
+  
+  return placeholderImages[index];
 };
 
 // Hook to fetch news by procedure category
@@ -104,60 +109,34 @@ export const useNewsByProcedureCategory = (
         setLoading(true);
         setError(null);
         
-        // Try fetching from the proxy service first
-        try {
-          const response = await axios.get(
-            `${NEWS_PROXY_URL}/api/news/procedure-category/${procedureCategoryId}?limit=${limit}`
-          );
-          
-          // Process the articles to ensure they have images
-          const articlesWithImages = await Promise.all(
-            response.data.map(async (article: NewsArticle) => {
-              if (!article.image_url) {
-                const imagePrompt = `${article.title} - ${article.industry} industry news`;
-                article.image_url = await generateImageForArticle(imagePrompt);
-              }
-              return article;
-            })
-          );
-          
-          setArticles(articlesWithImages || []);
-        } catch (proxyError) {
-          console.error('Proxy service error, falling back to Supabase:', proxyError);
-          
-          // Fall back to direct Supabase query
-          // First, get the procedure category details
-          const { data: categoryData, error: categoryError } = await supabase
-            .from('standardized_procedure_categories')
-            .select('*')
-            .eq('id', procedureCategoryId)
-            .single();
-          
-          if (categoryError) throw categoryError;
-          
-          // Query the view directly
-          const { data: newsData, error: newsError } = await supabase
-            .from('v_news_by_procedure_category')
-            .select('*')
-            .eq('procedure_category_id', procedureCategoryId)
-            .order('published_date', { ascending: false })
-            .limit(limit);
-          
-          if (newsError) throw newsError;
-          
-          // Process the articles to ensure they have images
-          const articlesWithImages = await Promise.all(
-            (newsData || []).map(async (article: NewsArticle) => {
-              if (!article.image_url) {
-                const imagePrompt = `${article.title} - ${article.industry} industry news`;
-                article.image_url = await generateImageForArticle(imagePrompt);
-              }
-              return article;
-            })
-          );
-          
-          setArticles(articlesWithImages || []);
-        }
+        // First, get the procedure category details
+        const { data: categoryData, error: categoryError } = await supabase
+          .from('standardized_procedure_categories')
+          .select('*')
+          .eq('id', procedureCategoryId)
+          .single();
+        
+        if (categoryError) throw categoryError;
+        
+        // Query the view directly
+        const { data: newsData, error: newsError } = await supabase
+          .from('v_news_by_procedure_category')
+          .select('*')
+          .eq('procedure_category_id', procedureCategoryId)
+          .order('published_date', { ascending: false })
+          .limit(limit);
+        
+        if (newsError) throw newsError;
+        
+        // Process the articles to ensure they have images
+        const articlesWithImages = (newsData || []).map((article: NewsArticle) => {
+          if (!article.image_url) {
+            article.image_url = getPlaceholderImage(article.title);
+          }
+          return article;
+        });
+        
+        setArticles(articlesWithImages);
       } catch (err: any) {
         console.error(`Error fetching news for procedure category ${procedureCategoryId}:`, err);
         setError(err.message || 'Failed to fetch news');
@@ -228,7 +207,15 @@ export const fetchFeaturedNews = async (limit: number = 5): Promise<NewsArticle[
     
     if (error) throw error;
     
-    return data || [];
+    // Add placeholder images if needed
+    const articlesWithImages = (data || []).map((article: NewsArticle) => {
+      if (!article.image_url) {
+        article.image_url = getPlaceholderImage(article.title);
+      }
+      return article;
+    });
+    
+    return articlesWithImages;
   } catch (err) {
     console.error('Error fetching featured news:', err);
     return [];
