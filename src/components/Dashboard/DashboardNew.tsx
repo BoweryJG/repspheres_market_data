@@ -232,7 +232,8 @@ const Dashboard: React.FC = () => {
           category: proc.category || proc.procedure_category || '',
           clinical_category: proc.clinical_category || proc.specialty || '',
           average_cost_usd: proc.average_cost_usd || proc.cost || proc.price || 0,
-          yearly_growth_percentage: proc.yearly_growth_percentage || proc.growth_rate || 0
+          yearly_growth_percentage: proc.yearly_growth_percentage || proc.growth_rate || 0,
+          market_size_usd_millions: proc.market_size_usd_millions || 0
         }));
         
         const aestheticProcs = (aestheticResponse.data || []).map(proc => ({
@@ -242,6 +243,7 @@ const Dashboard: React.FC = () => {
           category: proc.category || proc.procedure_category || '',
           average_cost_usd: proc.average_cost_usd || proc.cost || proc.cost_range || 0,
           yearly_growth_percentage: proc.yearly_growth_percentage || proc.trend_score || 0,
+          market_size_usd_millions: proc.market_size_usd_millions || 0,
           downtime: proc.downtime || '',
           body_areas_applicable: proc.body_areas_applicable || proc.body_area || ''
         }));
