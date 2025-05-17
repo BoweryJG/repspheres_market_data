@@ -28,6 +28,30 @@ export interface Category {
   imageUrl?: string;
 }
 
+export interface DentalCategory {
+  id: number;
+  name: string;
+  description?: string;
+  market_size_usd_millions?: number;
+  yearly_growth_percentage?: number;
+  procedure_count?: number;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: any;
+}
+
+export interface AestheticCategory {
+  id: number;
+  name: string;
+  description?: string;
+  market_size_usd_millions?: number;
+  yearly_growth_percentage?: number;
+  procedure_count?: number;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: any;
+}
+
 export interface Company {
   id: string;
   name: string;
