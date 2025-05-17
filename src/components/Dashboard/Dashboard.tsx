@@ -555,9 +555,9 @@ const Dashboard: React.FC = () => {
                               <TableCell>{company.name || 'N/A'}</TableCell>
                               <TableCell>{company.description || 'N/A'}</TableCell>
                               <TableCell>
-                                {company.website_url ? (
-                                  <a href={company.website_url} target="_blank" rel="noopener noreferrer">
-                                    {company.website || 'Visit Website'}
+                                {company.website ? (
+                                  <a href={company.website} target="_blank" rel="noopener noreferrer">
+                                    {company.website.replace(/^https?:\/\//i, '')}
                                   </a>
                                 ) : 'N/A'}
                               </TableCell>
