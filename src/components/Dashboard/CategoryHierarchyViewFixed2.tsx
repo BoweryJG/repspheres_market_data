@@ -43,7 +43,7 @@ import WallpaperIcon from '@mui/icons-material/Wallpaper';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import HubIcon from '@mui/icons-material/Hub';
 import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
-import { CategoryHierarchy } from '../../types';
+import type { CategoryHierarchy } from '../../types/index';
 
 // Proper Material UI icons map using actual icon components
 const iconMap: Record<string, React.ReactNode> = {

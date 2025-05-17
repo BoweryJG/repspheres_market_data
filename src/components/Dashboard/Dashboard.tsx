@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, ChangeEvent } from 'react';
+import MarketSizeOverview from './MarketSizeOverview';
 import {
   Container,
   Grid,
@@ -28,6 +29,23 @@ import {
   Switch
 } from '@mui/material';
 import { supabase } from '../../services/supabaseClient';
+
+// Utility function to format market size (millions/billions)
+const formatMarketSize = (sizeInMillions: number | null | undefined): string => {
+  if (sizeInMillions == null) return 'N/A';
+  
+  if (sizeInMillions >= 1000) {
+    return `$${(sizeInMillions / 1000).toFixed(1)}B`;
+  } else {
+    return `$${sizeInMillions.toFixed(0)}M`;
+  }
+};
+
+// Utility function to format growth rate
+const formatGrowthRate = (rate: number | null | undefined): string => {
+  if (rate == null) return 'N/A';
+  return `${rate > 0 ? '+' : ''}${rate.toFixed(1)}%`;
+};
 
 // Define interfaces based on the actual database schema
 interface DentalProcedure {
@@ -436,38 +454,6 @@ const Dashboard: React.FC = () => {
         </Typography>
 
         {/* Industry Toggle Switch */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
-          <Card elevation={3} sx={{ px: 4, py: 2, borderRadius: 2 }}>
-            <Grid container alignItems="center" spacing={2}>
-              <Grid item>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: selectedIndustry === 'dental' ? 'bold' : 'normal',
-                    color: selectedIndustry === 'dental' ? '#2196f3' : 'text.secondary'
-                  }}
-                >
-                  Dental
-                </Typography>
-              </Grid>
-              <Grid item>
-                <Switch
-                  checked={selectedIndustry === 'aesthetic'}
-                  onChange={handleIndustryChange}
-                  color="primary"
-                />
-              </Grid>
-              <Grid item>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: selectedIndustry === 'aesthetic' ? 'bold' : 'normal',
-                    color: selectedIndustry === 'aesthetic' ? '#f50057' : 'text.secondary'
-                  }}
-                >
-                  Aesthetic
-                </Typography>
-              </Grid>
             </Grid>
           </Card>
         </Box>
@@ -512,26 +498,6 @@ const Dashboard: React.FC = () => {
             <Card elevation={3}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {selectedIndustry === 'dental' ? 'Dental Procedures' : 'Aesthetic Procedures'}
-                </Typography>
-                <TableContainer component={Paper} elevation={0} sx={{ mb: 2 }}>
-                  <Table stickyHeader>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Cost (USD)</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Growth (%)</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {paginatedProcedures.length > 0 ? (
-                        paginatedProcedures.map((procedure, index) => (
-                          <TableRow key={`${selectedIndustry}-${procedure.id || index}`} hover>
-                            <TableCell>
-                              <strong>{procedure.name || procedure.procedure_name || 'N/A'}</strong>
-                              {procedure.description && (
-                                <Typography variant="body2" color="text.secondary">
                                   {procedure.description.substring(0, 100)}...
                                 </Typography>
                               )}

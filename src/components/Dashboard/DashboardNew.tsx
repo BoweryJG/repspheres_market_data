@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import MarketSizeOverview from './MarketSizeOverview';
 import {
   Container,
   Grid,
@@ -711,6 +712,17 @@ const Dashboard: React.FC = () => {
         </Grid>
       </Grid>
       
+      {/* Market Size Overview Section */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12}>
+          <MarketSizeOverview
+            dentalProcedures={dentalProcedures}
+            aestheticProcedures={aestheticProcedures}
+            selectedIndustry={selectedIndustry}
+          />
+        </Grid>
+      </Grid>
+      
       {/* Categories Section */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
@@ -806,8 +818,9 @@ const Dashboard: React.FC = () => {
                       {selectedIndustry === 'dental' && (
                         <TableCell sx={{ fontWeight: 'bold' }}>Clinical Category</TableCell>
                       )}
-                      <TableCell sx={{ fontWeight: 'bold' }}>Cost (USD)</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Growth %</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>Avg. Cost</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>Growth Rate</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>Market Size</TableCell>
                       {selectedIndustry === 'dental' ? (
                         <>
                           <TableCell sx={{ fontWeight: 'bold' }}>Complexity</TableCell>
