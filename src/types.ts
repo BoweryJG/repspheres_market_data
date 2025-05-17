@@ -52,6 +52,49 @@ export interface AestheticCategory {
   [key: string]: any;
 }
 
+export interface CategoryHierarchy {
+  id: number;
+  name: string;
+  description?: string;
+  icon?: string;
+  market_size_usd_millions?: number;
+  yearly_growth_percentage?: number;
+  procedure_count?: number;
+  subcategories?: CategoryHierarchy[];
+  parent_id?: number | null;
+  industry?: 'dental' | 'aesthetic' | 'both';
+}
+
+export interface DentalProcedure {
+  id: string;
+  name: string;
+  category: string;
+  clinical_category?: string;
+  average_cost_usd?: number;
+  yearly_growth_percentage?: number;
+  cpt_cdt_code?: string;
+  market_size_2025?: number;
+  description?: string;
+  popularity?: number;
+  imageUrl?: string;
+  procedure_source?: 'dental';
+}
+
+export interface AestheticProcedure {
+  id: string;
+  procedure_name: string;
+  category: string;
+  cost_range?: string;
+  downtime?: string;
+  trend_score?: number;
+  body_areas_applicable?: string[];
+  market_size_2025?: number;
+  description?: string;
+  popularity?: number;
+  yearly_growth_percentage?: number;
+  imageUrl?: string;
+}
+
 export interface Company {
   id: string;
   name: string;
@@ -63,6 +106,9 @@ export interface Company {
   headquarters: string;
   website: string;
   logoUrl?: string;
+  market_share_pct?: number;
+  last_year_sales_usd_million?: number;
+  projected_growth_pct?: number;
 }
 
 export interface MarketGrowth {
