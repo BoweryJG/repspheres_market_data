@@ -1,5 +1,18 @@
+// @deno-types="https://deno.land/x/types/deno.d.ts"
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.21.0'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.21.0'
+
+// Define types for the database schema
+type TableInfo = {
+  name: string;
+  rowCount: number;
+  columns: string[];
+  sample: Record<string, unknown>[] | null;
+};
+
+type PgTable = {
+  tablename: string;
+};
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,10 +27,14 @@ serve(async (req) => {
 
   try {
     // Create a Supabase client with the service role key
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     
-    const supabase = createClient(supabaseUrl, supabaseKey, {
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing required environment variables: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    }
+    
+    const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
@@ -33,8 +50,8 @@ serve(async (req) => {
     if (error) throw error
 
     // For each table, get row count and sample data
-    const tableData = await Promise.all(
-      tables.map(async (table: { tablename: string }) => {
+    const tableData: TableInfo[] = await Promise.all(
+      (tables as PgTable[]).map(async (table) => {
         const { count, error: countError } = await supabase
           .from(table.tablename)
           .select('*', { count: 'exact', head: true })
@@ -51,7 +68,7 @@ serve(async (req) => {
         return {
           name: table.tablename,
           rowCount: count || 0,
-          columns: sampleData && sampleData.length > 0 ? Object.keys(sampleData[0]) : [],
+          columns: sampleData && sampleData.length > 0 ? Object.keys(sampleData[0] as object) : [],
           sample: sampleData
         }
       })

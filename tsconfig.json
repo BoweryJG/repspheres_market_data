@@ -18,5 +18,8 @@
     "jsx": "react-jsx"
   },
   "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "exclude": ["supabase/functions/**/*.ts"],
+  "references": [
+    { "path": "./tsconfig.node.json" }
+  ]
 }

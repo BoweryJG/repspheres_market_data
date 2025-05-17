@@ -248,6 +248,8 @@ const Dashboard: React.FC = () => {
         .select('*')
         .order('name', { ascending: true });
       
+      console.log('Dental companies response:', { count: dentalData?.length || 0, data: dentalData, error: dentalError });
+      
       if (dentalError) throw dentalError;
       setDentalCompanies(dentalData || []);
 
@@ -256,9 +258,12 @@ const Dashboard: React.FC = () => {
         .select('*')
         .order('name', { ascending: true });
       
+      console.log('Aesthetic companies response:', { count: aestheticData?.length || 0, data: aestheticData, error: aestheticError });
+      
       if (aestheticError) throw aestheticError;
       setAestheticCompanies(aestheticData || []);
     } catch (err: any) {
+      console.error('Companies fetch error:', err);
       setError(`Failed to load companies: ${err.message}`);
     } finally {
       setCompaniesLoading(false);
@@ -274,6 +279,8 @@ const Dashboard: React.FC = () => {
         .select('*')
         .order('name', { ascending: true });
       
+      console.log('Dental categories response:', { count: dentalCatData?.length || 0, data: dentalCatData, error: dentalCatError });
+      
       if (dentalCatError) throw dentalCatError;
       setDentalCategories(dentalCatData || []);
 
@@ -282,9 +289,12 @@ const Dashboard: React.FC = () => {
         .select('*')
         .order('name', { ascending: true });
       
+      console.log('Aesthetic categories response:', { count: aestheticCatData?.length || 0, data: aestheticCatData, error: aestheticCatError });
+      
       if (aestheticCatError) throw aestheticCatError;
       setAestheticCategories(aestheticCatData || []);
     } catch (err: any) {
+      console.error('Categories fetch error:', err);
       setError(`Failed to load categories: ${err.message}`);
     } finally {
       setCategoriesLoading(false);
@@ -300,6 +310,8 @@ const Dashboard: React.FC = () => {
         .select('*')
         .order('name', { ascending: true });
       
+      console.log('Dental procedures response:', { count: dentalData?.length || 0, data: dentalData, error: dentalError });
+      
       if (dentalError) throw dentalError;
       setDentalProcedures(dentalData || []);
 
@@ -308,9 +320,12 @@ const Dashboard: React.FC = () => {
         .select('*')
         .order('name', { ascending: true });
       
+      console.log('Aesthetic procedures response:', { count: aestheticData?.length || 0, data: aestheticData, error: aestheticError });
+      
       if (aestheticError) throw aestheticError;
       setAestheticProcedures(aestheticData || []);
     } catch (err: any) {
+      console.error('Procedures fetch error:', err);
       setError(`Failed to load procedures: ${err.message}`);
     } finally {
       setLoading(false);
@@ -321,12 +336,22 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.log('Starting data fetch...');
         await Promise.all([
           fetchProcedures(),
           fetchCategories(),
           fetchCompanies()
         ]);
+        console.log('Data fetch completed', {
+          dentalProcedures: dentalProcedures.length,
+          aestheticProcedures: aestheticProcedures.length,
+          dentalCategories: dentalCategories.length,
+          aestheticCategories: aestheticCategories.length,
+          dentalCompanies: dentalCompanies.length,
+          aestheticCompanies: aestheticCompanies.length
+        });
       } catch (err: any) {
+        console.error('Data fetch error:', err);
         setError(`Failed to load data: ${err.message}`);
       }
     };
@@ -500,14 +525,39 @@ const Dashboard: React.FC = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {paginatedProcedures.map((procedure, index) => (
-                        <TableRow key={`${selectedIndustry}-${procedure.id || index}`} hover>
-                          <TableCell>{procedure.name || procedure.procedure_name || 'N/A'}</TableCell>
-                          <TableCell>{procedure.category || 'N/A'}</TableCell>
-                          <TableCell>{procedure.average_cost_usd !== undefined ? `$${procedure.average_cost_usd}` : 'N/A'}</TableCell>
-                          <TableCell>{procedure.yearly_growth_percentage !== undefined ? `${procedure.yearly_growth_percentage}%` : 'N/A'}</TableCell>
+                      {paginatedProcedures.length > 0 ? (
+                        paginatedProcedures.map((procedure, index) => (
+                          <TableRow key={`${selectedIndustry}-${procedure.id || index}`} hover>
+                            <TableCell>
+                              <strong>{procedure.name || procedure.procedure_name || 'N/A'}</strong>
+                              {procedure.description && (
+                                <Typography variant="body2" color="text.secondary">
+                                  {procedure.description.substring(0, 100)}...
+                                </Typography>
+                              )}
+                            </TableCell>
+                            <TableCell>{procedure.category || 'N/A'}</TableCell>
+                            <TableCell>{procedure.average_cost_usd !== undefined ? `$${Number(procedure.average_cost_usd).toLocaleString()}` : 'N/A'}</TableCell>
+                            <TableCell>{procedure.yearly_growth_percentage !== undefined ? `${procedure.yearly_growth_percentage}%` : 'N/A'}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} align="center">
+                            <Typography variant="body1" color="error" sx={{ py: 2 }}>
+                              No {selectedIndustry} procedures found. Please check console for errors.
+                            </Typography>
+                            <Button 
+                              variant="contained" 
+                              color="primary" 
+                              onClick={() => window.location.reload()}
+                              sx={{ mt: 1 }}
+                            >
+                              Reload Dashboard
+                            </Button>
+                          </TableCell>
                         </TableRow>
-                      ))}
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>
