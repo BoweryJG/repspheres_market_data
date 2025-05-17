@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import MarketSizeOverview from './MarketSizeOverview';
-import {
+import { 
   Container,
   Grid,
   Card,
   CardContent,
   Typography,
-  CircularProgress,
   Box,
   Table,
   TableBody,
@@ -15,18 +14,25 @@ import {
   TableHead,
   TableRow,
   Paper,
+  TablePagination,
+  Chip,
+  LinearProgress,
+  Tooltip,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  CircularProgress,
   Divider,
   Alert,
-  TablePagination,
   Button,
-  Chip,
   Tabs,
   Tab,
-  useTheme,
-  useMediaQuery,
   IconButton,
-  Tooltip,
-  Switch
+  Switch,
+  useTheme,
+  useMediaQuery as muiUseMediaQuery
 } from '@mui/material';
 import { supabase } from '../../services/supabaseClient';
 
@@ -126,7 +132,22 @@ interface Company {
 interface CategoryType {
   id: number;
   name: string;
+  slug: string;
+  parent_id: number | null;
+  applicable_to: 'dental' | 'aesthetic' | 'both';
+  description?: string;
+  avg_growth_rate?: number;
+  market_size_usd_millions?: number;
+  icon_name?: string;
+  color_code?: string;
+  display_order?: number;
+  is_featured?: boolean;
+  created_at?: string;
+  updated_at?: string;
   procedure_count?: number;
+  children?: CategoryType[];
+  level?: number;
+  isExpanded?: boolean;
 }
 
 interface TabPanelProps {
@@ -149,8 +170,6 @@ const Dashboard: React.FC = () => {
   // State management
   const [selectedIndustry, setSelectedIndustry] = useState<'dental' | 'aesthetic'>('dental');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   
   // Data states
   const [dentalProcedures, setDentalProcedures] = useState<DentalProcedure[]>([]);
@@ -160,65 +179,60 @@ const Dashboard: React.FC = () => {
   const [dentalCategories, setDentalCategories] = useState<CategoryType[]>([]);
   const [aestheticCategories, setAestheticCategories] = useState<CategoryType[]>([]);
   
-  // Pagination states
-  const [dentalPage, setDentalPage] = useState(0);
-  const [aestheticPage, setAestheticPage] = useState(0);
-  const [dentalCompanyPage, setDentalCompanyPage] = useState(0);
-  const [aestheticCompanyPage, setAestheticCompanyPage] = useState(0);
+  // Pagination for procedures
+  const [currentPage, setCurrentPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [companiesRowsPerPage, setCompaniesRowsPerPage] = useState(5);
   
-  // UI states
-  const [tabValue, setTabValue] = useState(0);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [companiesLoading, setCompaniesLoading] = useState(false);
-  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  // Pagination for companies
+  const [currentCompanyPage, setCurrentCompanyPage] = useState(0);
+  const [companiesRowsPerPage, setCompaniesRowsPerPage] = useState(10);
+  
+  // Loading states
+  const [companiesLoading, setCompaniesLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [proceduresLoading, setProceduresLoading] = useState(true);
+  
+  // Error states
+  const [error, setError] = useState<string | null>(null);
   
   // Derived states
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = muiUseMediaQuery(theme.breakpoints.down('md'));
+  
+  // Calculate current procedures based on selected industry and category
+  const currentProcedures = useMemo(() => {
+    const procedures = selectedIndustry === 'dental' ? dentalProcedures : aestheticProcedures;
+    const filtered = selectedCategory
+      ? procedures.filter(p => p.category_id === selectedCategory)
+      : procedures;
+    
+    // Sort by name for consistent ordering
+    return [...filtered].sort((a, b) => 
+      (a.name || a.procedure_name || '').localeCompare(b.name || b.procedure_name || '')
+    );
+  }, [selectedIndustry, selectedCategory, dentalProcedures, aestheticProcedures]);
+  
+  // Calculate current companies based on selected industry
+  const currentCompanies = useMemo(() => {
+    return selectedIndustry === 'dental' ? dentalCompanies : aestheticCompanies;
+  }, [selectedIndustry, dentalCompanies, aestheticCompanies]);
+  
+  // Calculate current categories based on selected industry
+  const currentCategories = useMemo(() => {
+    return selectedIndustry === 'dental' ? dentalCategories : aestheticCategories;
+  }, [selectedIndustry, dentalCategories, aestheticCategories]);
   
   // Calculate procedure counts for categories
   const categoriesWithCounts = useMemo(() => {
-    if (selectedIndustry === 'dental') {
-      return dentalCategories.map(category => ({
-        ...category,
-        procedure_count: dentalProcedures.filter(p => 
-          p.category_id === category.id || 
-          p.procedure_category_id === category.id
-        ).length
-      }));
-    } else {
-      return aestheticCategories.map(category => ({
-        ...category,
-        procedure_count: aestheticProcedures.filter(p => 
-          p.category_id === category.id
-        ).length
-      }));
-    }
+    const procedures = selectedIndustry === 'dental' ? dentalProcedures : aestheticProcedures;
+    const categories = selectedIndustry === 'dental' ? dentalCategories : aestheticCategories;
+    
+    return categories.map(category => ({
+      ...category,
+      procedure_count: procedures.filter(p => p.category_id === category.id).length
+    }));
   }, [selectedIndustry, dentalCategories, aestheticCategories, dentalProcedures, aestheticProcedures]);
   
-  // Computed values based on selected industry
-  const currentCompanies = useMemo(() => 
-    selectedIndustry === 'dental' ? dentalCompanies : aestheticCompanies,
-    [selectedIndustry, dentalCompanies, aestheticCompanies]
-  );
-  
-  const currentCategories = useMemo(() => 
-    categoriesWithCounts,
-    [categoriesWithCounts]
-  );
-  
-  const currentPage = useMemo(() => 
-    selectedIndustry === 'dental' ? dentalPage : aestheticPage,
-    [selectedIndustry, dentalPage, aestheticPage]
-  );
-  
-  const currentCompanyPage = useMemo(() => 
-    selectedIndustry === 'dental' ? dentalCompanyPage : aestheticCompanyPage,
-    [selectedIndustry, dentalCompanyPage, aestheticCompanyPage]
-  );
-
   // Event handlers
   const handleIndustryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedIndustry(event.target.checked ? 'aesthetic' : 'dental');
@@ -229,32 +243,22 @@ const Dashboard: React.FC = () => {
     setSelectedCategory(categoryId);
   };
 
-  const handleChangePage = (_event: unknown, newPage: number) => {
-    if (selectedIndustry === 'dental') {
-      setDentalPage(newPage);
-    } else {
-      setAestheticPage(newPage);
-    }
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setCurrentPage(newPage);
   };
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
-    setDentalPage(0);
-    setAestheticPage(0);
+    setCurrentPage(0);
   };
 
-  const handleCompanyPageChange = (_event: unknown, newPage: number) => {
-    if (selectedIndustry === 'dental') {
-      setDentalCompanyPage(newPage);
-    } else {
-      setAestheticCompanyPage(newPage);
-    }
+  const handleCompanyPageChange = (event: unknown, newPage: number) => {
+    setCurrentCompanyPage(newPage);
   };
 
   const handleCompanyRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setCompaniesRowsPerPage(parseInt(event.target.value, 10));
-    setDentalCompanyPage(0);
-    setAestheticCompanyPage(0);
+    setCurrentCompanyPage(0);
   };
 
   // Fetch companies data
@@ -321,7 +325,7 @@ const Dashboard: React.FC = () => {
 
   // Fetch procedures data
   const fetchProcedures = async () => {
-    setLoading(true);
+    setProceduresLoading(true);
     try {
       const { data: dentalData, error: dentalError } = await supabase
         .from('dental_procedures')
@@ -346,7 +350,7 @@ const Dashboard: React.FC = () => {
       console.error('Procedures fetch error:', err);
       setError(`Failed to load procedures: ${err.message}`);
     } finally {
-      setLoading(false);
+      setProceduresLoading(false);
     }
   };
 
@@ -411,11 +415,11 @@ const Dashboard: React.FC = () => {
   );
 
   // Loading state
-  if (loading) {
+  if (proceduresLoading || categoriesLoading || companiesLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
         <CircularProgress size={60} thickness={4} />
-        <Typography variant="h6" sx={{ ml: 2 }}>Loading all procedures...</Typography>
+        <Typography variant="h6" sx={{ ml: 2 }}>Loading data...</Typography>
       </Box>
     );
   }
@@ -446,16 +450,26 @@ const Dashboard: React.FC = () => {
         width: '100%',
         maxWidth: '100vw',
         overflowX: 'hidden',
-        p: { xs: 1, sm: 2, md: 3 },
-        boxSizing: 'border-box'
       }}>
         <Typography variant="h4" gutterBottom align="center" sx={{ fontWeight: 'bold', mb: 4 }}>
           Market Intelligence Dashboard
         </Typography>
 
         {/* Industry Toggle Switch */}
-            </Grid>
-          </Card>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+          <FormControl component="fieldset">
+            <FormLabel component="legend">Select Industry</FormLabel>
+            <RadioGroup
+              row
+              aria-label="industry"
+              name="industry"
+              value={selectedIndustry}
+              onChange={handleIndustryChange}
+            >
+              <FormControlLabel value="dental" control={<Radio />} label="Dental" />
+              <FormControlLabel value="aesthetic" control={<Radio />} label="Aesthetic" />
+            </RadioGroup>
+          </FormControl>
         </Box>
 
         {/* Categories Section */}
@@ -498,18 +512,45 @@ const Dashboard: React.FC = () => {
             <Card elevation={3}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                                  {procedure.description.substring(0, 100)}...
-                                </Typography>
-                              )}
+                  {selectedIndustry === 'dental' ? 'Dental Procedures' : 'Aesthetic Procedures'}
+                </Typography>
+                <TableContainer component={Paper} elevation={0} sx={{ mb: 2 }}>
+                  <Table stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Description</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Average Cost</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Growth Rate</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {currentProcedures.length > 0 ? (
+                        currentProcedures.map((procedure, index) => (
+                          <TableRow key={`${selectedIndustry}-${procedure.id || index}`} hover>
+                            <TableCell>{procedure.name || procedure.procedure_name || 'N/A'}</TableCell>
+                            <TableCell>
+                              {procedure.description && procedure.description.length > 100 
+                                ? `${procedure.description.substring(0, 100)}...`
+                                : procedure.description || 'N/A'}
                             </TableCell>
                             <TableCell>{procedure.category || 'N/A'}</TableCell>
-                            <TableCell>{procedure.average_cost_usd !== undefined ? `$${Number(procedure.average_cost_usd).toLocaleString()}` : 'N/A'}</TableCell>
-                            <TableCell>{procedure.yearly_growth_percentage !== undefined ? `${procedure.yearly_growth_percentage}%` : 'N/A'}</TableCell>
+                            <TableCell>
+                              {procedure.average_cost_usd !== undefined 
+                                ? `$${Number(procedure.average_cost_usd).toLocaleString()}` 
+                                : 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              {procedure.yearly_growth_percentage !== undefined 
+                                ? `${procedure.yearly_growth_percentage}%` 
+                                : 'N/A'}
+                            </TableCell>
                           </TableRow>
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={4} align="center">
+                          <TableCell colSpan={5} align="center">
                             <Typography variant="body1" color="error" sx={{ py: 2 }}>
                               No {selectedIndustry} procedures found. Please check console for errors.
                             </Typography>
@@ -529,7 +570,7 @@ const Dashboard: React.FC = () => {
                 </TableContainer>
                 <TablePagination
                   component="div"
-                  count={filteredProcedures.length}
+                  count={currentProcedures.length}
                   page={currentPage}
                   onPageChange={handleChangePage}
                   rowsPerPage={rowsPerPage}
