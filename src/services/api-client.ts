@@ -1,6 +1,138 @@
-import { ApiGateway } from '../../../../packages/api-gateway/src/gateway';
-import { ApiGatewayConfig, RequestOptions } from '../../../../packages/api-gateway/src/types';
-import { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+
+// Define API Gateway configuration interface
+interface ApiGatewayConfig {
+  baseURL: string;
+  headers?: Record<string, string>;
+  timeout?: number;
+  withCredentials?: boolean;
+}
+
+// Simple API Gateway implementation
+class ApiGateway {
+  private client: AxiosInstance;
+  
+  constructor(config: ApiGatewayConfig) {
+    this.client = axios.create({
+      baseURL: config.baseURL,
+      headers: config.headers || {},
+      timeout: config.timeout || 30000,
+      withCredentials: config.withCredentials || false
+    });
+  }
+  
+  // Update client configuration
+  updateConfig(config: Partial<ApiGatewayConfig>): void {
+    if (config.baseURL) {
+      this.client.defaults.baseURL = config.baseURL;
+    }
+    
+    if (config.headers) {
+      this.client.defaults.headers.common = {
+        ...this.client.defaults.headers.common,
+        ...config.headers
+      };
+    }
+    
+    if (config.timeout) {
+      this.client.defaults.timeout = config.timeout;
+    }
+    
+    if (config.withCredentials !== undefined) {
+      this.client.defaults.withCredentials = config.withCredentials;
+    }
+  }
+  
+  // Set authentication token
+  setAuthToken(token: string): void {
+    this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  }
+  
+  // Clear authentication token
+  clearAuthToken(): void {
+    delete this.client.defaults.headers.common['Authorization'];
+  }
+  
+  // GET request
+  async get(url: string, options?: AxiosRequestConfig): Promise<any> {
+    try {
+      const response = await this.client.get(url, options);
+      return {
+        success: true,
+        data: response.data,
+        status: response.status
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: {
+          message: error.message,
+          status: error.response?.status
+        }
+      };
+    }
+  }
+  
+  // POST request
+  async post(url: string, data?: any, options?: AxiosRequestConfig): Promise<any> {
+    try {
+      const response = await this.client.post(url, data, options);
+      return {
+        success: true,
+        data: response.data,
+        status: response.status
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: {
+          message: error.message,
+          status: error.response?.status
+        }
+      };
+    }
+  }
+  
+  // PUT request
+  async put(url: string, data?: any, options?: AxiosRequestConfig): Promise<any> {
+    try {
+      const response = await this.client.put(url, data, options);
+      return {
+        success: true,
+        data: response.data,
+        status: response.status
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: {
+          message: error.message,
+          status: error.response?.status
+        }
+      };
+    }
+  }
+  
+  // DELETE request
+  async delete(url: string, options?: AxiosRequestConfig): Promise<any> {
+    try {
+      const response = await this.client.delete(url, options);
+      return {
+        success: true,
+        data: response.data,
+        status: response.status
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: {
+          message: error.message,
+          status: error.response?.status
+        }
+      };
+    }
+  }
+}
 
 /**
  * Market Insights API Client
@@ -212,6 +344,59 @@ export class MarketInsightsApiClient {
   }
 
   /**
+   * Get news articles by procedure category
+   * @param procedureCategoryId Procedure category ID
+   * @param limit Maximum number of articles to return
+   * @param offset Pagination offset
+   * @returns List of news articles
+   */
+  public async getNewsByProcedureCategory(procedureCategoryId: string, limit: number = 10, offset: number = 0): Promise<any[]> {
+    const response = await this.apiGateway.get(`/api/news/procedure-category/${procedureCategoryId}`, {
+      params: { limit, offset },
+    });
+    
+    if (!response.success) {
+      throw new Error(`Failed to get news for procedure category ${procedureCategoryId}: ${response.error?.message}`);
+    }
+    
+    return response.data;
+  }
+
+  /**
+   * Get top news articles for all procedure categories
+   * @param limit Maximum number of articles to return per category
+   * @returns List of news articles grouped by procedure category
+   */
+  public async getTopNewsByProcedureCategories(limit: number = 3): Promise<any[]> {
+    const response = await this.apiGateway.get('/api/news/top-by-procedure-categories', {
+      params: { limit },
+    });
+    
+    if (!response.success) {
+      throw new Error(`Failed to get top news by procedure categories: ${response.error?.message}`);
+    }
+    
+    return response.data;
+  }
+
+  /**
+   * Execute a custom SQL query
+   * @param query SQL query to execute
+   * @returns Query results
+   */
+  public async executeQuery(query: string): Promise<any> {
+    const response = await this.apiGateway.post('/api/query', {
+      query
+    });
+    
+    if (!response.success) {
+      throw new Error(`Failed to execute query: ${response.error?.message}`);
+    }
+    
+    return response;
+  }
+
+  /**
    * Get companies
    * @param limit Maximum number of companies to return
    * @param offset Pagination offset
@@ -271,51 +456,14 @@ export class MarketInsightsApiClient {
  * @returns Configured API client
  */
 export function createMarketInsightsApiClient(baseURL: string, token?: string): MarketInsightsApiClient {
+  // Create a new instance with the provided configuration
   const config: ApiGatewayConfig = {
     baseURL,
     timeout: 10000,
     headers: {
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     },
-    retryConfig: {
-      maxRetries: 3,
-      retryDelay: 1000,
-      retryStatusCodes: [408, 429, 500, 502, 503, 504],
-    },
-    middleware: {
-      request: [
-        // Add request timestamp
-        (config: InternalAxiosRequestConfig) => {
-          if (config.headers) {
-            config.headers['X-Request-Time'] = new Date().toISOString();
-          }
-          return config;
-        },
-      ],
-      response: [
-        // Log response time in development
-        (response: AxiosResponse) => {
-          if (process.env.NODE_ENV === 'development') {
-            const requestTime = response.config.headers?.['X-Request-Time'];
-            if (requestTime) {
-              const responseTime = Date.now() - new Date(requestTime as string).getTime();
-              console.log(`[API] ${response.config.method?.toUpperCase()} ${response.config.url} - ${responseTime}ms`);
-            }
-          }
-          return response;
-        },
-      ],
-      error: [
-        // Handle authentication errors
-        (error: any) => {
-          if (error.response?.status === 401) {
-            // Could dispatch an action to redirect to login or refresh token
-            console.error('Authentication error - token may have expired');
-          }
-          return Promise.reject(error);
-        },
-      ],
-    },
+    withCredentials: false
   };
 
   return MarketInsightsApiClient.getInstance(config);

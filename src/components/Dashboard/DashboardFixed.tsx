@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 import { supabase } from '../../services/supabaseClient';
 import { DentalCategory, AestheticCategory } from '../../types';
+import NewsDashboard from '../News/NewsDashboard';
 
 // Define CategoryHierarchy interface locally since it's missing from types
 interface CategoryHierarchy {
@@ -659,6 +660,16 @@ const Dashboard: React.FC = () => {
                   : handleAestheticChangeRowsPerPage
                 }
               />
+            </CardContent>
+          </Card>
+          
+          {/* News section */}
+          <Card variant="outlined" sx={{ mt: 4, mb: 4 }}>
+            <CardContent>
+              <Typography variant="h6" color="primary" gutterBottom>
+                Industry News
+              </Typography>
+              <NewsDashboard />
             </CardContent>
           </Card>
           
