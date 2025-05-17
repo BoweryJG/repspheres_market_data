@@ -530,11 +530,15 @@ const Dashboard: React.FC = () => {
                       <TableCell>Category</TableCell>
                       <TableCell align="right">Avg. Cost</TableCell>
                       <TableCell align="right">Growth %</TableCell>
+                      <TableCell align="right">Market Size</TableCell>
                       {selectedIndustry === 'aesthetic' && (
                         <TableCell>Downtime</TableCell>
                       )}
                       {selectedIndustry === 'dental' && (
                         <TableCell>Clinical Category</TableCell>
+                      )}
+                      {selectedIndustry === 'dental' && (
+                        <TableCell>CDT Code</TableCell>
                       )}
                     </TableRow>
                   </TableHead>
@@ -556,11 +560,19 @@ const Dashboard: React.FC = () => {
                         <TableCell align="right">
                           {safeRender(proc.yearly_growth_percentage, true)}
                         </TableCell>
+                        <TableCell align="right">
+                          {proc.market_size_usd_millions 
+                            ? `$${proc.market_size_usd_millions.toLocaleString()}M` 
+                            : '-'}
+                        </TableCell>
                         {selectedIndustry === 'aesthetic' && (
                           <TableCell>{(proc as any).downtime || '-'}</TableCell>
                         )}
                         {selectedIndustry === 'dental' && (
                           <TableCell>{(proc as any).clinical_category || '-'}</TableCell>
+                        )}
+                        {selectedIndustry === 'dental' && (
+                          <TableCell>{(proc as any).cpt_cdt_code || '-'}</TableCell>
                         )}
                       </TableRow>
                     ))}

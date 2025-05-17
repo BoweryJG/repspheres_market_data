@@ -76,6 +76,7 @@ interface DentalProcedure {
   contraindications?: string;
   created_at?: string;
   updated_at?: string;
+  cpt_cdt_code?: string;
   [key: string]: any;
 }
 
@@ -523,6 +524,9 @@ const Dashboard: React.FC = () => {
                         <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
                         <TableCell sx={{ fontWeight: 'bold' }}>Average Cost</TableCell>
                         <TableCell sx={{ fontWeight: 'bold' }}>Growth Rate</TableCell>
+                        {selectedIndustry === 'dental' && (
+                          <TableCell sx={{ fontWeight: 'bold' }}>CDT Code</TableCell>
+                        )}
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -546,6 +550,9 @@ const Dashboard: React.FC = () => {
                                 ? `${procedure.yearly_growth_percentage}%` 
                                 : 'N/A'}
                             </TableCell>
+                            {selectedIndustry === 'dental' && (
+                              <TableCell>{procedure.cpt_cdt_code || 'N/A'}</TableCell>
+                            )}
                           </TableRow>
                         ))
                       ) : (
