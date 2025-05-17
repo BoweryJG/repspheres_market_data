@@ -210,15 +210,40 @@ const Dashboard: React.FC = () => {
         console.log('Dental data:', dentalResponse.data);
         console.log('Aesthetic data:', aestheticResponse.data);
         
-        const dentalProcs = (dentalResponse.data || []).map(proc => ({
-          ...proc,
-          id: proc.id || Math.random(),
-          name: proc.procedure_name || proc.name || proc.title || '',
-          category: proc.category || proc.procedure_category || '',
-          clinical_category: proc.clinical_category || proc.specialty || '',
-          average_cost_usd: proc.average_cost_usd || proc.cost || proc.price || 0,
-          yearly_growth_percentage: proc.yearly_growth_percentage || proc.growth_rate || 0,
-          market_size_usd_millions: proc.market_size_usd_millions || 0
+        // Fetch standardized categories to get market size data
+        const { data: standardizedCategories, error: catError } = await supabase
+          .from('standardized_procedure_categories')
+          .select('*');
+          
+        if (catError) {
+          console.warn('Could not fetch standardized categories:', catError);
+        } else {
+          console.log('Fetched standardized categories:', standardizedCategories?.length || 0);
+        }
+        
+        // Create a map of categories for quick lookup
+        const categoryMarketSizeMap = new Map();
+        standardizedCategories?.forEach(cat => {
+          categoryMarketSizeMap.set(cat.name.toLowerCase(), {
+            market_size_usd_millions: cat.market_size_usd_millions,
+            yearly_growth_percentage: cat.avg_growth_rate
+          });
+        });
+        
+        // Enrich dental procedures with market size data
+        const dentalProcs = (dentalResponse.data || []).map(proc => {
+          const category = proc.category || proc.procedure_category || '';
+          const marketData = categoryMarketSizeMap.get(category.toLowerCase());
+          
+          return {
+            ...proc,
+            id: proc.id || Math.random(),
+            name: proc.procedure_name || proc.name || proc.title || '',
+            category: category,
+            clinical_category: proc.clinical_category || proc.specialty || '',
+            average_cost_usd: proc.average_cost_usd || proc.cost || proc.price || 0,
+            yearly_growth_percentage: proc.yearly_growth_percentage || proc.growth_rate || (marketData?.yearly_growth_percentage) || 0,
+            market_size_usd_millions: proc.market_size_usd_millions || (marketData?.market_size_usd_millions) || 0
         }));
         
         const aestheticProcs = (aestheticResponse.data || []).map(proc => ({
