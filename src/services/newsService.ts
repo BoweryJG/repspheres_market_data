@@ -1,5 +1,11 @@
 import { supabase } from './supabaseClient';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
+
+// News proxy service URL - change this to your Render URL when deployed
+const NEWS_PROXY_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://repspheres-news-proxy.onrender.com' 
+  : 'http://localhost:3001';
 
 // Types
 export interface NewsArticle {
@@ -71,6 +77,18 @@ export const useNewsByIndustry = (industry: 'dental' | 'aesthetic', limit: numbe
   return { articles, loading, error };
 };
 
+// Helper function to generate image for an article
+export const generateImageForArticle = async (prompt: string): Promise<string> => {
+  try {
+    const response = await axios.post(`${NEWS_PROXY_URL}/api/news/generate-image`, { prompt });
+    return response.data.imageUrl;
+  } catch (error) {
+    console.error('Error generating image:', error);
+    // Return a default image if generation fails
+    return 'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?q=80&w=1000&auto=format&fit=crop';
+  }
+};
+
 // Hook to fetch news by procedure category
 export const useNewsByProcedureCategory = (
   procedureCategoryId: number | string,
@@ -86,43 +104,60 @@ export const useNewsByProcedureCategory = (
         setLoading(true);
         setError(null);
         
-        // First, get the procedure category details
-        const { data: categoryData, error: categoryError } = await supabase
-          .from('standardized_procedure_categories')
-          .select('*')
-          .eq('id', procedureCategoryId)
-          .single();
-        
-        if (categoryError) throw categoryError;
-        
-        // Then, get the news categories mapped to this procedure category
-        const { data: mappingData, error: mappingError } = await supabase
-          .from('news_to_procedure_category_mapping')
-          .select('news_category_id')
-          .eq('procedure_category_id', procedureCategoryId);
-        
-        if (mappingError) throw mappingError;
-        
-        if (!mappingData || mappingData.length === 0) {
-          setArticles([]);
-          return;
+        // Try fetching from the proxy service first
+        try {
+          const response = await axios.get(
+            `${NEWS_PROXY_URL}/api/news/procedure-category/${procedureCategoryId}?limit=${limit}`
+          );
+          
+          // Process the articles to ensure they have images
+          const articlesWithImages = await Promise.all(
+            response.data.map(async (article: NewsArticle) => {
+              if (!article.image_url) {
+                const imagePrompt = `${article.title} - ${article.industry} industry news`;
+                article.image_url = await generateImageForArticle(imagePrompt);
+              }
+              return article;
+            })
+          );
+          
+          setArticles(articlesWithImages || []);
+        } catch (proxyError) {
+          console.error('Proxy service error, falling back to Supabase:', proxyError);
+          
+          // Fall back to direct Supabase query
+          // First, get the procedure category details
+          const { data: categoryData, error: categoryError } = await supabase
+            .from('standardized_procedure_categories')
+            .select('*')
+            .eq('id', procedureCategoryId)
+            .single();
+          
+          if (categoryError) throw categoryError;
+          
+          // Query the view directly
+          const { data: newsData, error: newsError } = await supabase
+            .from('v_news_by_procedure_category')
+            .select('*')
+            .eq('procedure_category_id', procedureCategoryId)
+            .order('published_date', { ascending: false })
+            .limit(limit);
+          
+          if (newsError) throw newsError;
+          
+          // Process the articles to ensure they have images
+          const articlesWithImages = await Promise.all(
+            (newsData || []).map(async (article: NewsArticle) => {
+              if (!article.image_url) {
+                const imagePrompt = `${article.title} - ${article.industry} industry news`;
+                article.image_url = await generateImageForArticle(imagePrompt);
+              }
+              return article;
+            })
+          );
+          
+          setArticles(articlesWithImages || []);
         }
-        
-        // Get the news category IDs
-        const newsCategoryIds = mappingData.map(m => m.news_category_id);
-        
-        // Get articles directly from news_articles table based on category
-        // Since news_article_categories is empty, we'll use the category field in news_articles
-        const { data: newsData, error: newsError } = await supabase
-          .from('news_articles')
-          .select('*')
-          .eq('industry', categoryData.applicable_to)
-          .order('published_date', { ascending: false })
-          .limit(limit);
-        
-        if (newsError) throw newsError;
-        
-        setArticles(newsData || []);
       } catch (err: any) {
         console.error(`Error fetching news for procedure category ${procedureCategoryId}:`, err);
         setError(err.message || 'Failed to fetch news');
@@ -152,6 +187,10 @@ export const useTopProcedureCategoriesWithNews = (
         setLoading(true);
         setError(null);
         
+        const NEWS_PROXY_URL = process.env.NODE_ENV === 'production' 
+          ? 'https://repspheres-news-proxy.onrender.com' 
+          : 'http://localhost:3001';
+
         // Get top procedure categories by market size
         const { data: categoryData, error: categoryError } = await supabase
           .from('standardized_procedure_categories')
