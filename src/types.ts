@@ -75,6 +75,8 @@ export interface DentalProcedure {
   id: string;
   name: string;
   category: string;
+  category_id?: number;
+  procedure_category_id?: number;
   clinical_category?: string;
   average_cost_usd?: number;
   yearly_growth_percentage?: number;
@@ -88,8 +90,11 @@ export interface DentalProcedure {
 
 export interface AestheticProcedure {
   id: string;
+  name?: string;
   procedure_name: string;
   category: string;
+  category_id?: number;
+  procedure_category_id?: number;
   cost_range?: string;
   downtime?: string;
   trend_score?: number;
@@ -98,6 +103,7 @@ export interface AestheticProcedure {
   description?: string;
   popularity?: number;
   yearly_growth_percentage?: number;
+  average_cost_usd?: number;
   imageUrl?: string;
 }
 
