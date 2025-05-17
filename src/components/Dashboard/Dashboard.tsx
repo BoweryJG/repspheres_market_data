@@ -160,6 +160,26 @@ const Dashboard: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
+  // Calculate procedure counts for categories
+  const categoriesWithCounts = useMemo(() => {
+    if (selectedIndustry === 'dental') {
+      return dentalCategories.map(category => ({
+        ...category,
+        procedure_count: dentalProcedures.filter(p => 
+          p.category_id === category.id || 
+          p.procedure_category_id === category.id
+        ).length
+      }));
+    } else {
+      return aestheticCategories.map(category => ({
+        ...category,
+        procedure_count: aestheticProcedures.filter(p => 
+          p.category_id === category.id
+        ).length
+      }));
+    }
+  }, [selectedIndustry, dentalCategories, aestheticCategories, dentalProcedures, aestheticProcedures]);
+  
   // Computed values based on selected industry
   const currentCompanies = useMemo(() => 
     selectedIndustry === 'dental' ? dentalCompanies : aestheticCompanies,
@@ -167,8 +187,8 @@ const Dashboard: React.FC = () => {
   );
   
   const currentCategories = useMemo(() => 
-    selectedIndustry === 'dental' ? dentalCategories : aestheticCategories,
-    [selectedIndustry, dentalCategories, aestheticCategories]
+    categoriesWithCounts,
+    [categoriesWithCounts]
   );
   
   const currentPage = useMemo(() => 
