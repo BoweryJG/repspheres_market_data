@@ -210,40 +210,14 @@ const Dashboard: React.FC = () => {
         console.log('Dental data:', dentalResponse.data);
         console.log('Aesthetic data:', aestheticResponse.data);
         
-        // Fetch standardized categories to get market size data
-        const { data: standardizedCategories, error: catError } = await supabase
-          .from('standardized_procedure_categories')
-          .select('*');
-          
-        if (catError) {
-          console.warn('Could not fetch standardized categories:', catError);
-        } else {
-          console.log('Fetched standardized categories:', standardizedCategories?.length || 0);
-        }
-        
-        // Create a map of categories for quick lookup
-        const categoryMarketSizeMap = new Map();
-        standardizedCategories?.forEach(cat => {
-          categoryMarketSizeMap.set(cat.name.toLowerCase(), {
-            market_size_usd_millions: cat.market_size_usd_millions,
-            yearly_growth_percentage: cat.avg_growth_rate
-          });
-        });
-        
-        // Enrich dental procedures with market size data
-        const dentalProcs = (dentalResponse.data || []).map(proc => {
-          const category = proc.category || proc.procedure_category || '';
-          const marketData = categoryMarketSizeMap.get(category.toLowerCase());
-          
-          return {
-            ...proc,
-            id: proc.id || Math.random(),
-            name: proc.procedure_name || proc.name || proc.title || '',
-            category: category,
-            clinical_category: proc.clinical_category || proc.specialty || '',
-            average_cost_usd: proc.average_cost_usd || proc.cost || proc.price || 0,
-            yearly_growth_percentage: proc.yearly_growth_percentage || proc.growth_rate || (marketData?.yearly_growth_percentage) || 0,
-            market_size_usd_millions: proc.market_size_usd_millions || (marketData?.market_size_usd_millions) || 0
+        const dentalProcs = (dentalResponse.data || []).map(proc => ({
+          ...proc,
+          id: proc.id || Math.random(),
+          name: proc.procedure_name || proc.name || proc.title || '',
+          category: proc.category || proc.procedure_category || '',
+          clinical_category: proc.clinical_category || proc.specialty || '',
+          average_cost_usd: proc.average_cost_usd || proc.cost || proc.price || 0,
+          yearly_growth_percentage: proc.yearly_growth_percentage || proc.growth_rate || 0
         }));
         
         const aestheticProcs = (aestheticResponse.data || []).map(proc => ({
@@ -253,7 +227,6 @@ const Dashboard: React.FC = () => {
           category: proc.category || proc.procedure_category || '',
           average_cost_usd: proc.average_cost_usd || proc.cost || proc.cost_range || 0,
           yearly_growth_percentage: proc.yearly_growth_percentage || proc.trend_score || 0,
-          market_size_usd_millions: proc.market_size_usd_millions || 0,
           downtime: proc.downtime || '',
           body_areas_applicable: proc.body_areas_applicable || proc.body_area || ''
         }));
@@ -283,7 +256,7 @@ const Dashboard: React.FC = () => {
     if (!categoryName) return null;
     
     const categoryMap = industry === 'dental' ? dentalCategoryMap : aestheticCategoryMap;
-    return (categoryMap as Record<string, number>)[categoryName] || null;
+    return categoryMap[categoryName] || null;
   };
 
   // Pagination handlers for procedures
@@ -555,15 +528,15 @@ const Dashboard: React.FC = () => {
                       <TableCell>Category</TableCell>
                       <TableCell align="right">Avg. Cost</TableCell>
                       <TableCell align="right">Growth %</TableCell>
-                      <TableCell align="right">Market Size</TableCell>
+                      <TableCell align="right">Market Size 2025</TableCell>
                       {selectedIndustry === 'aesthetic' && (
                         <TableCell>Downtime</TableCell>
                       )}
                       {selectedIndustry === 'dental' && (
-                        <TableCell>Clinical Category</TableCell>
-                      )}
-                      {selectedIndustry === 'dental' && (
-                        <TableCell>CDT Code</TableCell>
+                        <>
+                          <TableCell>Clinical Category</TableCell>
+                          <TableCell>CDT Code</TableCell>
+                        </>
                       )}
                     </TableRow>
                   </TableHead>
@@ -586,18 +559,27 @@ const Dashboard: React.FC = () => {
                           {safeRender(proc.yearly_growth_percentage, true)}
                         </TableCell>
                         <TableCell align="right">
-                          {proc.market_size_usd_millions 
-                            ? `$${proc.market_size_usd_millions.toLocaleString()}M` 
-                            : '-'}
+                          {(() => {
+                            // Format large market size numbers more readably
+                            if (proc.market_size_2025_usd_millions) {
+                              const value = parseFloat(String(proc.market_size_2025_usd_millions));
+                              if (value >= 1000) {
+                                return `$${(value/1000).toFixed(1)}B`; // Billions with 1 decimal
+                              } else {
+                                return `$${value.toLocaleString()}M`; // Millions with comma formatting
+                              }
+                            }
+                            return '-';
+                          })()}
                         </TableCell>
                         {selectedIndustry === 'aesthetic' && (
                           <TableCell>{(proc as any).downtime || '-'}</TableCell>
                         )}
                         {selectedIndustry === 'dental' && (
-                          <TableCell>{(proc as any).clinical_category || '-'}</TableCell>
-                        )}
-                        {selectedIndustry === 'dental' && (
-                          <TableCell>{(proc as any).cpt_cdt_code || '-'}</TableCell>
+                          <>
+                            <TableCell>{(proc as any).clinical_category || '-'}</TableCell>
+                            <TableCell>{proc.cpt_cdt_code || '-'}</TableCell>
+                          </>
                         )}
                       </TableRow>
                     ))}
