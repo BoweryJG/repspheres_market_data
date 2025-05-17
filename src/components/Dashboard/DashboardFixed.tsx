@@ -27,6 +27,12 @@ import { supabase } from '../../services/supabaseClient';
 import { DentalCategory, AestheticCategory } from '../../types';
 import NewsDashboard from '../News/NewsDashboard';
 
+// Define sort configuration type
+type SortConfig = {
+  field: string;
+  direction: 'asc' | 'desc';
+};
+
 // Define CategoryHierarchy interface locally since it's missing from types
 interface CategoryHierarchy {
   id: number;
@@ -71,6 +77,12 @@ const Dashboard: React.FC = () => {
   // UI state
   const [selectedIndustry, setSelectedIndustry] = useState<'dental' | 'aesthetic'>('dental');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    field: 'name',
+    direction: 'asc'
+  });
 
   // Pagination state for procedures
   const [dentalPage, setDentalPage] = useState(0);
@@ -351,6 +363,57 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Handle sorting
+  const handleSort = (field: string) => {
+    setSortConfig(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Sort procedures based on sort configuration
+  const sortProcedures = <T extends Record<string, any>>(procedures: T[]): T[] => {
+    if (!sortConfig.field) return procedures;
+    
+    return [...procedures].sort((a, b) => {
+      let aValue = a[sortConfig.field];
+      let bValue = b[sortConfig.field];
+      
+      // Handle nested fields
+      if (sortConfig.field === 'category') {
+        aValue = a.category || '';
+        bValue = b.category || '';
+      } else if (sortConfig.field === 'clinical_category') {
+        aValue = a.clinical_category || '';
+        bValue = b.clinical_category || '';
+      } else if (sortConfig.field === 'market_size') {
+        aValue = a.market_size_2025_usd_millions || 0;
+        bValue = b.market_size_2025_usd_millions || 0;
+      }
+      
+      // Convert to string if not already
+      if (aValue === null || aValue === undefined) aValue = '';
+      if (bValue === null || bValue === undefined) bValue = '';
+      
+      // Handle numeric comparisons
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      // Handle string comparisons
+      const aString = String(aValue).toLowerCase();
+      const bString = String(bValue).toLowerCase();
+      
+      if (aString < bString) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aString > bString) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  };
+
   // Safe rendering function for any field
   const safeRender = (value: any, isPercent = false, decimalPlaces = 1) => {
     if (value === null || value === undefined || value === '') return '-';
@@ -396,53 +459,80 @@ const Dashboard: React.FC = () => {
       }));
   };
 
-  // Get filtered procedures based on selected category - FIXED to use category name mapping
+  // Filter procedures based on selected category
   const filteredDentalProcedures = useMemo(() => {
     if (!selectedCategory) return dentalProcedures;
-    
-    // Filter by mapping the category names to hierarchy IDs
-    return dentalProcedures.filter(proc => {
-      // First try to match by direct ID
-      if (proc.category_id === selectedCategory || proc.procedure_category_id === selectedCategory) {
-        return true;
-      }
-      
-      // Then try to match by mapping the category name to hierarchy ID
-      const mappedCategoryId = mapCategoryToHierarchy(proc.category, 'dental');
-      return mappedCategoryId === selectedCategory;
-    });
-  }, [dentalProcedures, selectedCategory, dentalCategoryMap]);
-
-  // Same for aesthetic procedures
+    return dentalProcedures.filter(p => p.category_id === selectedCategory || p.procedure_category_id === selectedCategory);
+  }, [dentalProcedures, selectedCategory]);
+  
   const filteredAestheticProcedures = useMemo(() => {
     if (!selectedCategory) return aestheticProcedures;
-    
-    return aestheticProcedures.filter(proc => {
-      // First try to match by direct ID
-      if (proc.category_id === selectedCategory || proc.procedure_category_id === selectedCategory) {
-        return true;
-      }
-      
-      // Then try to match by mapping the category name to hierarchy ID
-      const mappedCategoryId = mapCategoryToHierarchy(proc.category, 'aesthetic');
-      return mappedCategoryId === selectedCategory;
-    });
-  }, [aestheticProcedures, selectedCategory, aestheticCategoryMap]);
+    return aestheticProcedures.filter(p => p.category_id === selectedCategory);
+  }, [aestheticProcedures, selectedCategory]);
+  
+  // Sort the filtered procedures
+  const sortedDentalProcedures = useMemo(() => 
+    sortProcedures(filteredDentalProcedures),
+    [filteredDentalProcedures, sortConfig]
+  );
+  
+  const sortedAestheticProcedures = useMemo(() => 
+    sortProcedures(filteredAestheticProcedures),
+    [filteredAestheticProcedures, sortConfig]
+  );
 
   // Already defined these at the component level to avoid React hooks order warning
   const currentDentalProcedures = useMemo(() => {
-    return filteredDentalProcedures.slice(
+    return sortedDentalProcedures.slice(
       dentalPage * dentalRowsPerPage,
       dentalPage * dentalRowsPerPage + dentalRowsPerPage
     );
-  }, [filteredDentalProcedures, dentalPage, dentalRowsPerPage]);
+  }, [sortedDentalProcedures, dentalPage, dentalRowsPerPage]);
 
   const currentAestheticProcedures = useMemo(() => {
-    return filteredAestheticProcedures.slice(
+    return sortedAestheticProcedures.slice(
       aestheticPage * aestheticRowsPerPage,
       aestheticPage * aestheticRowsPerPage + aestheticRowsPerPage
     );
-  }, [filteredAestheticProcedures, aestheticPage, aestheticRowsPerPage]);
+  }, [sortedAestheticProcedures, aestheticPage, aestheticRowsPerPage]);
+
+  // Sortable table header component
+  const SortableTableHeader = ({ field, children, align = 'left' }: { field: string; children: React.ReactNode, align?: 'left' | 'right' | 'center' }) => {
+    const isSorted = sortConfig.field === field;
+    const isAsc = sortConfig.direction === 'asc';
+    
+    return (
+      <TableCell 
+        align={align}
+        onClick={() => handleSort(field)}
+        sx={{ 
+          cursor: 'pointer',
+          fontWeight: 'bold',
+          '&:hover': { 
+            backgroundColor: 'action.hover',
+          },
+          '& > *': {
+            display: 'flex',
+            alignItems: 'center',
+            width: '100%',
+            justifyContent: align === 'right' ? 'flex-end' : 
+                          align === 'center' ? 'center' : 'flex-start'
+          }
+        }}
+      >
+        <Box component="span">
+          {children}
+          {isSorted ? (
+            <Box component="span" sx={{ ml: 1, display: 'inline-flex' }}>
+              {isAsc ? '↑' : '↓'}
+            </Box>
+          ) : (
+            <Box component="span" sx={{ ml: 1, opacity: 0.5, display: 'inline-flex' }}>↕</Box>
+          )}
+        </Box>
+      </TableCell>
+    );
+  };
 
   // Calculate current companies page data
   const currentDentalCompanies = useMemo(() => {
@@ -548,18 +638,17 @@ const Dashboard: React.FC = () => {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell>Procedure Name</TableCell>
-                      <TableCell>Category</TableCell>
-                      <TableCell align="right">Avg. Cost</TableCell>
-                      <TableCell align="right">Growth %</TableCell>
-                      <TableCell align="right">Market Size 2025</TableCell>
-                      {selectedIndustry === 'aesthetic' && (
-                        <TableCell>Downtime</TableCell>
-                      )}
-                      {selectedIndustry === 'dental' && (
+                      <SortableTableHeader field="name">Procedure Name</SortableTableHeader>
+                      <SortableTableHeader field="category">Category</SortableTableHeader>
+                      <SortableTableHeader field="average_cost_usd" align="right">Avg. Cost</SortableTableHeader>
+                      <SortableTableHeader field="yearly_growth_percentage" align="right">Growth %</SortableTableHeader>
+                      <SortableTableHeader field="market_size" align="right">Market Size 2025</SortableTableHeader>
+                      {selectedIndustry === 'aesthetic' ? (
+                        <SortableTableHeader field="downtime">Downtime</SortableTableHeader>
+                      ) : (
                         <>
-                          <TableCell>Clinical Category</TableCell>
-                          <TableCell>CDT Code</TableCell>
+                          <SortableTableHeader field="clinical_category">Clinical Category</SortableTableHeader>
+                          <SortableTableHeader field="cpt_cdt_code">CDT Code</SortableTableHeader>
                         </>
                       )}
                     </TableRow>

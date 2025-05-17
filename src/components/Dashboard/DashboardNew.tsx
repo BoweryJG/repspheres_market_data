@@ -325,6 +325,12 @@ const Dashboard: React.FC = () => {
     setAestheticCategoryPage(0);
   };
 
+  // State for sorting
+  const [sortConfig, setSortConfig] = useState<{ field: string; direction: 'asc' | 'desc' }>({
+    field: 'name',
+    direction: 'asc'
+  });
+
   // Handle category selection
   const handleCategorySelect = (categoryId: number | null) => {
     setSelectedCategory(categoryId === selectedCategory ? null : categoryId);
@@ -334,6 +340,57 @@ const Dashboard: React.FC = () => {
     } else {
       setAestheticPage(0);
     }
+  };
+
+  // Handle sorting
+  const handleSort = (field: string) => {
+    setSortConfig(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Sort procedures based on sort configuration
+  const sortProcedures = (procedures: any[]) => {
+    if (!sortConfig.field) return procedures;
+    
+    return [...procedures].sort((a, b) => {
+      let aValue = a[sortConfig.field];
+      let bValue = b[sortConfig.field];
+      
+      // Handle nested fields
+      if (sortConfig.field === 'category') {
+        aValue = a.category || '';
+        bValue = b.category || '';
+      } else if (sortConfig.field === 'clinical_category') {
+        aValue = a.clinical_category || '';
+        bValue = b.clinical_category || '';
+      } else if (sortConfig.field === 'market_size') {
+        aValue = a.market_size_2025_usd_millions || 0;
+        bValue = b.market_size_2025_usd_millions || 0;
+      }
+      
+      // Convert to string if not already
+      if (aValue === null || aValue === undefined) aValue = '';
+      if (bValue === null || bValue === undefined) bValue = '';
+      
+      // Handle numeric comparisons
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      // Handle string comparisons
+      const aString = String(aValue).toLowerCase();
+      const bString = String(bValue).toLowerCase();
+      
+      if (aString < bString) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aString > bString) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
   };
 
   // Safe rendering function for any field
@@ -436,17 +493,55 @@ const Dashboard: React.FC = () => {
   const filteredAestheticProcedures = selectedCategory && selectedIndustry === 'aesthetic'
     ? aestheticProcedures.filter(p => p.category_id === selectedCategory)
     : aestheticProcedures;
+    
+  // Sort the filtered procedures
+  const sortedDentalProcedures = useMemo(() => 
+    sortProcedures(filteredDentalProcedures),
+    [filteredDentalProcedures, sortConfig]
+  );
+
+  const sortedAestheticProcedures = useMemo(() => 
+    sortProcedures(filteredAestheticProcedures),
+    [filteredAestheticProcedures, sortConfig]
+  );
 
   // Get paginated records
-  const paginatedDentalProcedures = filteredDentalProcedures.slice(
+  const paginatedDentalProcedures = sortedDentalProcedures.slice(
     dentalPage * dentalRowsPerPage,
     dentalPage * dentalRowsPerPage + dentalRowsPerPage
   );
 
-  const paginatedAestheticProcedures = filteredAestheticProcedures.slice(
+  const paginatedAestheticProcedures = sortedAestheticProcedures.slice(
     aestheticPage * aestheticRowsPerPage,
     aestheticPage * aestheticRowsPerPage + aestheticRowsPerPage
   );
+  
+  // Helper component for sortable table headers
+  const SortableTableHeader = ({ field, children, align = 'left' }: { field: string; children: React.ReactNode, align?: 'left' | 'right' | 'center' }) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <TableCell 
+        align={align as any}
+        sx={{ 
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)'
+          }
+        }}
+        onClick={() => handleSort(field)}
+      >
+        <Box display="flex" alignItems="center" justifyContent={align === 'right' ? 'flex-end' : 'flex-start'}>
+          {children}
+          {isActive && (
+            <span style={{ marginLeft: 4 }}>
+              {sortConfig.direction === 'asc' ? '↑' : '↓'}
+            </span>
+          )}
+        </Box>
+      </TableCell>
+    );
+  };
   
   const paginatedDentalCategories = dentalCategories.slice(
     dentalCategoryPage * dentalCategoryRowsPerPage,
@@ -815,23 +910,23 @@ const Dashboard: React.FC = () => {
                 <Table stickyHeader>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
+                      <SortableTableHeader field="name">Name</SortableTableHeader>
+                      <SortableTableHeader field="category">Category</SortableTableHeader>
                       {selectedIndustry === 'dental' && (
-                        <TableCell sx={{ fontWeight: 'bold' }}>Clinical Category</TableCell>
+                        <SortableTableHeader field="clinical_category">Clinical Category</SortableTableHeader>
                       )}
-                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>Avg. Cost</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>Growth Rate</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 'bold' }}>Market Size</TableCell>
+                      <SortableTableHeader field="average_cost_usd" align="right">Avg. Cost</SortableTableHeader>
+                      <SortableTableHeader field="yearly_growth_percentage" align="right">Growth Rate</SortableTableHeader>
+                      <SortableTableHeader field="market_size" align="right">Market Size</SortableTableHeader>
                       {selectedIndustry === 'dental' ? (
                         <>
-                          <TableCell sx={{ fontWeight: 'bold' }}>Complexity</TableCell>
-                          <TableCell sx={{ fontWeight: 'bold' }}>Satisfaction</TableCell>
+                          <SortableTableHeader field="complexity">Complexity</SortableTableHeader>
+                          <SortableTableHeader field="patient_satisfaction_score">Satisfaction</SortableTableHeader>
                         </>
                       ) : (
                         <>
-                          <TableCell sx={{ fontWeight: 'bold' }}>Downtime</TableCell>
-                          <TableCell sx={{ fontWeight: 'bold' }}>Body Area</TableCell>
+                          <SortableTableHeader field="downtime">Downtime</SortableTableHeader>
+                          <SortableTableHeader field="body_areas_applicable">Body Area</SortableTableHeader>
                         </>
                       )}
                     </TableRow>
@@ -843,8 +938,15 @@ const Dashboard: React.FC = () => {
                           <TableCell>{safeRender(procedure.name)}</TableCell>
                           <TableCell>{safeRender(procedure.category)}</TableCell>
                           <TableCell>{safeRender(procedure.clinical_category)}</TableCell>
-                          <TableCell>{procedure.average_cost_usd ? `$${procedure.average_cost_usd.toLocaleString()}` : '-'}</TableCell>
-                          <TableCell>{safeRender(procedure.yearly_growth_percentage, true)}</TableCell>
+                          <TableCell align="right">
+                            {procedure.average_cost_usd ? `$${procedure.average_cost_usd.toLocaleString()}` : '-'}
+                          </TableCell>
+                          <TableCell align="right">{safeRender(procedure.yearly_growth_percentage, true)}</TableCell>
+                          <TableCell align="right">
+                            {procedure.market_size_2025_usd_millions 
+                              ? `$${procedure.market_size_2025_usd_millions.toLocaleString()}M` 
+                              : '-'}
+                          </TableCell>
                           <TableCell>{safeRender(procedure.complexity)}</TableCell>
                           <TableCell>{safeRender(procedure.patient_satisfaction_score)}</TableCell>
                         </TableRow>
@@ -854,8 +956,15 @@ const Dashboard: React.FC = () => {
                         <TableRow key={`aesthetic-${procedure.id || index}`} hover>
                           <TableCell>{safeRender(procedure.name)}</TableCell>
                           <TableCell>{safeRender(procedure.category)}</TableCell>
-                          <TableCell>{procedure.average_cost_usd ? `$${procedure.average_cost_usd.toLocaleString()}` : '-'}</TableCell>
-                          <TableCell>{safeRender(procedure.yearly_growth_percentage, true)}</TableCell>
+                          <TableCell align="right">
+                            {procedure.average_cost_usd ? `$${procedure.average_cost_usd.toLocaleString()}` : '-'}
+                          </TableCell>
+                          <TableCell align="right">{safeRender(procedure.yearly_growth_percentage, true)}</TableCell>
+                          <TableCell align="right">
+                            {procedure.market_size_2025_usd_millions 
+                              ? `$${procedure.market_size_2025_usd_millions.toLocaleString()}M` 
+                              : '-'}
+                          </TableCell>
                           <TableCell>{safeRender(procedure.downtime)}</TableCell>
                           <TableCell>{safeRender(procedure.body_areas_applicable)}</TableCell>
                         </TableRow>
