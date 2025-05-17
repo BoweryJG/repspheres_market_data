@@ -24,7 +24,29 @@ import {
   Tooltip
 } from '@mui/material';
 import { supabase } from '../../services/supabaseClient';
-import { DentalCategory, AestheticCategory, CategoryHierarchy } from '../../types';
+import { DentalCategory, AestheticCategory } from '../../types';
+
+// Define CategoryHierarchy interface locally since it's missing from types
+interface CategoryHierarchy {
+  id: number;
+  name: string;
+  slug: string;
+  parent_id: number | null;
+  applicable_to: 'dental' | 'aesthetic' | 'both';
+  description?: string;
+  avg_growth_rate?: number;
+  market_size_usd_millions?: number;
+  icon_name?: string;
+  color_code?: string;
+  display_order?: number;
+  is_featured?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  children?: CategoryHierarchy[];
+  level?: number;
+  isExpanded?: boolean;
+  procedureCount?: number;
+}
 import CategoryHierarchyView from './CategoryHierarchyViewFixed2';
 
 const Dashboard: React.FC = () => {
@@ -256,7 +278,8 @@ const Dashboard: React.FC = () => {
     if (!categoryName) return null;
     
     const categoryMap = industry === 'dental' ? dentalCategoryMap : aestheticCategoryMap;
-    return categoryMap[categoryName] || null;
+    // Use type assertion to fix the TypeScript error
+    return (categoryMap as Record<string, number>)[categoryName] || null;
   };
 
   // Pagination handlers for procedures
@@ -573,7 +596,30 @@ const Dashboard: React.FC = () => {
                           })()}
                         </TableCell>
                         {selectedIndustry === 'aesthetic' && (
-                          <TableCell>{(proc as any).downtime || '-'}</TableCell>
+                          <TableCell>
+                            {(() => {
+                              const downtime = (proc as any).downtime;
+                              if (!downtime) return '-';
+                              
+                              // Condense the downtime string for display
+                              const condensed = downtime
+                                .replace(/(\d+)\s*to\s*(\d+)/g, '$1-$2')  // Convert "X to Y" to "X-Y"
+                                .replace(/\s+/g, ' ')  // Collapse multiple spaces
+                                .replace(/\.\s+/g, ' • ')  // Replace ". " with " • "
+                                .trim();
+                              
+                              // Show first 30 chars with ellipsis if longer
+                              const displayText = condensed.length > 30 
+                                ? `${condensed.substring(0, 30)}...` 
+                                : condensed;
+                              
+                              return (
+                                <Tooltip title={downtime} arrow>
+                                  <span style={{ whiteSpace: 'nowrap' }}>{displayText}</span>
+                                </Tooltip>
+                              );
+                            })()}
+                          </TableCell>
                         )}
                         {selectedIndustry === 'dental' && (
                           <>
