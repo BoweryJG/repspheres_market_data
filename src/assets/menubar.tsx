@@ -61,6 +61,9 @@ export default function NavBar() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
+  // Get current URL to determine which page we're on
+  const currentUrl = window.location.href;
+  
   // Get the gradient colors from context
   const { gradientColors } = useOrbContext();
 
@@ -182,7 +185,11 @@ export default function NavBar() {
               }}
             >
               <List sx={{ mt: 4 }}>
-                {navLinks.map((link) => (
+                {navLinks
+                  // Filter out Market Insights link if we're already on that page
+                  .filter(link => !(link.label === 'Market Insights' && 
+                    (currentUrl.includes('/dashboard') || currentUrl.includes('insights.repspheres.com'))))
+                  .map((link) => (
                   <ListItem key={link.label} disablePadding>
                     <ListItemButton
                       component="a"
@@ -264,7 +271,11 @@ export default function NavBar() {
             justifyContent: 'center',
             width: '100%',
           }}>
-            {navLinks.map((link) => (
+            {navLinks
+              // Filter out Market Insights link if we're already on that page
+              .filter(link => !(link.label === 'Market Insights' && 
+                (currentUrl.includes('/dashboard') || currentUrl.includes('insights.repspheres.com'))))
+              .map((link) => (
               <Box key={link.label} sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <Button
                   href={link.href}
