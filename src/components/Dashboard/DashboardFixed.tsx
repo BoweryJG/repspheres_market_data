@@ -1,328 +1,34 @@
 import React, { useState, useEffect, useMemo } from 'react';
-// Material UI core components
-import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
-import Grid from '@mui/material/Grid';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Typography from '@mui/material/Typography';
-import CircularProgress from '@mui/material/CircularProgress';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
-import Divider from '@mui/material/Divider';
-import Alert from '@mui/material/Alert';
-import Switch from '@mui/material/Switch';
-import TablePagination from '@mui/material/TablePagination';
-import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
-import LinearProgress from '@mui/material/LinearProgress';
-import Tooltip from '@mui/material/Tooltip';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
-
-// Material UI navigation components
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import IconButton from '@mui/material/IconButton';
-import Drawer from '@mui/material/Drawer';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemText from '@mui/material/ListItemText';
-
-// Material UI hooks
-import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
-
-// Material UI icons
-import MenuIcon from '@mui/icons-material/Menu';
-import CloseIcon from '@mui/icons-material/Close';
-import CategoryIcon from '@mui/icons-material/Category';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import InsightsIcon from '@mui/icons-material/Insights';
-import AppsIcon from '@mui/icons-material/Apps';
-import PodcastsIcon from '@mui/icons-material/Podcasts';
-import LanguageIcon from '@mui/icons-material/Language';
-import LoginIcon from '@mui/icons-material/Login';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import MemoryIcon from '@mui/icons-material/Memory';
-
-// Local imports
-import Logo from '../../assets/logo.svg';
+import {
+  Container,
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  CircularProgress,
+  Box,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Divider,
+  Alert,
+  Switch,
+  TablePagination,
+  Button,
+  Chip,
+  LinearProgress,
+  Tooltip
+} from '@mui/material';
 import { supabase } from '../../services/supabaseClient';
-import { DentalCategory, AestheticCategory } from '../../types';
-import NewsDashboard from '../News/NewsDashboard';
-import CategoryHierarchyView from './CategoryHierarchyViewFixed2';
-
-// RepSpheres custom styling constants
-const ACCENT_COLOR = '#00ffc6';
-const navLinks = [
-  { label: 'Market Insights', href: '/dashboard', emphasize: false, icon: <InsightsIcon sx={{ mr: 1, fontSize: 24, color: ACCENT_COLOR }} />, fire: true },
-  { label: 'Workspace', href: 'https://workspace.repspheres.com/', emphasize: false, icon: <DashboardIcon sx={{ mr: 1, fontSize: 24, color: ACCENT_COLOR }} /> },
-  { label: 'Linguistics', href: 'https://linguistics.repspheres.com/', emphasize: false, icon: <LanguageIcon sx={{ mr: 1, fontSize: 24, color: ACCENT_COLOR }} /> },
-  { label: 'Sphere OS', href: 'https://crm.repspheres.com/', emphasize: false, icon: <MemoryIcon sx={{ mr: 1, fontSize: 24, color: ACCENT_COLOR }} /> },
-  { label: 'Podcast', href: '/podcast.html', emphasize: true, icon: <PodcastsIcon sx={{ mr: 1, fontSize: 24, color: ACCENT_COLOR }} /> },
-];
-
-// Animated fire underline keyframes
-const fireUnderlineAnim = {
-  '@keyframes fireUnderline': {
-    '0%': { backgroundPosition: '0% 50%' },
-    '50%': { backgroundPosition: '100% 50%' },
-    '100%': { backgroundPosition: '0% 50%' },
-  }
-};
-
-// Define sort configuration type
-type SortConfig = {
-  field: string;
-  direction: 'asc' | 'desc';
-};
-
-// Define CategoryHierarchy interface locally since it's missing from types
-interface CategoryHierarchy {
-  id: number;
-  name: string;
-  slug: string;
-  parent_id: number | null;
-  applicable_to: 'dental' | 'aesthetic' | 'both';
-  description?: string;
-  avg_growth_rate?: number;
-  market_size_usd_millions?: number;
-  icon_name?: string;
-  color_code?: string;
-  display_order?: number;
-  is_featured?: boolean;
-  created_at?: string;
-  updated_at?: string;
-  children?: CategoryHierarchy[];
-  level?: number;
-  isExpanded?: boolean;
-  procedureCount?: number;
-}
+import { DentalCategory, AestheticCategory, CategoryHierarchy } from '../../types';
+import CategoryHierarchyView from './CategoryHierarchyView';
+import MarketSizeOverview, { formatMarketSize } from './MarketSizeOverview';
 
 const Dashboard: React.FC = () => {
-  // Responsive menubar and drawer
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  
-  // Nav button style definition
-  const navButtonStyle = {
-    fontWeight: 400,
-    letterSpacing: '0.04em',
-    fontSize: '1.04rem',
-    px: 1.2,
-    py: 0,
-    borderRadius: 0,
-    background: 'none',
-    boxShadow: 'none',
-    transition: 'color 0.2s, border-bottom 0.2s',
-    borderBottom: '2px solid transparent',
-    '&:hover': {
-      color: '#3a86ff',
-      background: 'none',
-      borderBottom: '2px solid #3a86ff',
-      boxShadow: 'none',
-    },
-  };
-
-  // Orb SVG for brand
-  const orb = (
-    <svg width="32" height="32" viewBox="0 0 32 32" style={{ marginRight: 10, filter: 'drop-shadow(0 0 6px #7B42F6AA)' }}>
-      <defs>
-        <radialGradient id="orbGrad" cx="50%" cy="50%" r="70%">
-          <stop offset="0%" stopColor="#7B42F6" />
-          <stop offset="100%" stopColor="#00ffc6" />
-        </radialGradient>
-      </defs>
-      <circle cx="16" cy="16" r="14" fill="url(#orbGrad)" opacity="0.85" />
-      <circle cx="16" cy="16" r="8" fill="#fff" opacity="0.08" />
-    </svg>
-  );
-
-  // Menubar component
-  const Menubar = (
-    <AppBar position="sticky" elevation={0} sx={{
-      background: 'rgba(24,24,43,0.52)',
-      backdropFilter: 'blur(18px) saturate(130%)',
-      WebkitBackdropFilter: 'blur(18px) saturate(130%)',
-      boxShadow: '0 8px 32px 0 rgba(123,66,246,0.17)',
-      border: '1.5px solid rgba(123,66,246,0.13)',
-      transition: 'background 0.24s',
-      borderBottom: '1.5px solid rgba(123,66,246,0.10)',
-      zIndex: 1200,
-      borderRadius: { xs: '0 0 18px 18px', md: '0 0 32px 32px' },
-      mx: { xs: 1, md: 3 },
-      mt: { xs: 1, md: 2 },
-      width: { xs: 'calc(100% - 8px)', md: 'calc(100% - 48px)' },
-      fontFamily: 'Montserrat, DM Sans, Arial, sans-serif',
-      fontWeight: 700,
-      color: '#fff',
-      marginLeft: 6,
-      letterSpacing: '0.01em',
-      display: 'flex',
-      alignItems: 'center',
-    }}>
-      <Toolbar>
-        <Box sx={{ display: 'flex', alignItems: 'center', fontWeight: 900, fontSize: { xs: '1.35rem', md: '1.10rem' }, letterSpacing: '0.09em', color: '#fff', userSelect: 'none' }}>
-          <span style={{ display: 'flex', alignItems: 'center' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 2 }}>
-              <span style={{ width: 32, height: 32, display: 'inline-block' }}>
-                {orb}
-              </span>
-            </span>
-            <span style={{ fontWeight: 800, letterSpacing: '0.09em', marginRight: 2 }}>Rep</span>
-            <span style={{
-              background: 'linear-gradient(90deg, #00ffc6 0%, #7B42F6 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontWeight: 800,
-              letterSpacing: '0.09em',
-              transition: 'background 0.4s',
-            }}>
-              Spheres
-            </span>
-          </span>
-          {!isMobile && (
-            <>
-              <Box sx={{ width: 24 }} />
-              <Box sx={{ height: 36, display: 'flex', alignItems: 'center', mx: 1 }}>
-                <span style={{
-                  borderLeft: '2px solid rgba(255,255,255,0.13)',
-                  height: 28,
-                  margin: '0 16px',
-                  display: 'inline-block',
-                }} />
-              </Box>
-              <Box sx={{ width: 16 }} />
-            </>
-          )}
-          <Typography variant="h6" component="div" sx={{ 
-            flexGrow: 1, 
-            ml: 2,
-            fontWeight: 700,
-            letterSpacing: '0.05em',
-            background: 'linear-gradient(90deg, #7B42F6 0%, #00ffc6 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}>
-            Market Insights
-          </Typography>
-        </Box>
-        {isMobile ? (
-          <>
-            <IconButton edge="end" color="inherit" onClick={() => setDrawerOpen(true)}>
-              <MenuIcon sx={{ fontSize: 32 }} />
-            </IconButton>
-            <Drawer
-              anchor="right"
-              open={drawerOpen}
-              onClose={() => setDrawerOpen(false)}
-              PaperProps={{
-                sx: {
-                  background: 'rgba(20,14,38,0.96)',
-                  borderLeft: '2.5px solid',
-                  borderImage: 'linear-gradient(180deg, #7B42F6 0%, #00ffc6 100%) 1',
-                  minWidth: 260,
-                  borderTopLeftRadius: 26,
-                  borderBottomLeftRadius: 26,
-                  boxShadow: '0 8px 48px 4px #7B42F633',
-                  p: 1,
-                }
-              }}
-            >
-              <List sx={{ mt: 4 }}>
-                {navLinks.map((link) => (
-                  <ListItem key={link.label} disablePadding>
-                    <ListItemButton
-                      component="a"
-                      href={link.href}
-                      sx={{
-                        ...navButtonStyle,
-                        opacity: link.emphasize ? 0.6 : 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        fontSize: '1.09rem',
-                        mb: 1,
-                        color: '#fff',
-                      }}
-                    >
-                      {link.icon}{link.label}
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-              </List>
-            </Drawer>
-          </>
-        ) : (
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.5,
-            justifyContent: 'flex-end',
-            width: '70%',
-          }}>
-            {navLinks.map((link) => (
-              <Box key={link.label} sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <Button
-                  href={link.href}
-                  sx={{
-                    ...navButtonStyle,
-                    opacity: link.emphasize ? 0.7 : 1,
-                    color: '#fff',
-                    fontWeight: 400,
-                    fontSize: '1.04rem',
-                    letterSpacing: '0.04em',
-                    display: 'flex',
-                    alignItems: 'center',
-                    minWidth: 0,
-                    px: 1.8,
-                    mx: 0.5,
-                    background: 'none',
-                    boxShadow: 'none',
-                    position: 'relative',
-                    zIndex: 2,
-                    ...(link.fire ? fireUnderlineAnim : {}),
-                  }}
-                  disableRipple
-                >
-                  {link.icon}{link.label}
-                  <Box
-                    className="nav-underline"
-                    sx={{
-                      position: 'absolute',
-                      left: '10%',
-                      bottom: 6,
-                      height: 3,
-                      width: 0,
-                      borderRadius: 2,
-                      opacity: 0,
-                      background: 'linear-gradient(90deg, #7B42F6 0%, #00ffc6 100%)',
-                      transition: 'width 0.32s cubic-bezier(.8,.2,.2,1), opacity 0.22s',
-                      zIndex: 1,
-                    }}
-                  />
-                </Button>
-              </Box>
-            ))}
-          </Box>
-        )}
-      </Toolbar>
-    </AppBar>
-  );
-
   // State for procedures and companies
   const [dentalProcedures, setDentalProcedures] = useState<any[]>([]);
   const [aestheticProcedures, setAestheticProcedures] = useState<any[]>([]);
@@ -343,17 +49,6 @@ const Dashboard: React.FC = () => {
   // UI state
   const [selectedIndustry, setSelectedIndustry] = useState<'dental' | 'aesthetic'>('dental');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  
-  // Sorting state
-  const [sortConfig, setSortConfig] = useState<SortConfig>({
-    field: 'name',
-    direction: 'asc'
-  });
-  
-  // Procedure detail modal state
-  const [selectedProcedure, setSelectedProcedure] = useState<any>(null);
-  const [detailModalOpen, setDetailModalOpen] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<number>(0);
 
   // Pagination state for procedures
   const [dentalPage, setDentalPage] = useState(0);
@@ -562,8 +257,7 @@ const Dashboard: React.FC = () => {
     if (!categoryName) return null;
     
     const categoryMap = industry === 'dental' ? dentalCategoryMap : aestheticCategoryMap;
-    // Use type assertion to fix the TypeScript error
-    return (categoryMap as Record<string, number>)[categoryName] || null;
+    return categoryMap[categoryName as keyof typeof categoryMap] || null;
   };
 
   // Pagination handlers for procedures
@@ -634,57 +328,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Handle sorting
-  const handleSort = (field: string) => {
-    setSortConfig(prev => ({
-      field,
-      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
-    }));
-  };
-
-  // Sort procedures based on sort configuration
-  const sortProcedures = <T extends Record<string, any>>(procedures: T[]): T[] => {
-    if (!sortConfig.field) return procedures;
-    
-    return [...procedures].sort((a, b) => {
-      let aValue = a[sortConfig.field];
-      let bValue = b[sortConfig.field];
-      
-      // Handle nested fields
-      if (sortConfig.field === 'category') {
-        aValue = a.category || '';
-        bValue = b.category || '';
-      } else if (sortConfig.field === 'clinical_category') {
-        aValue = a.clinical_category || '';
-        bValue = b.clinical_category || '';
-      } else if (sortConfig.field === 'market_size') {
-        aValue = a.market_size_2025_usd_millions || 0;
-        bValue = b.market_size_2025_usd_millions || 0;
-      }
-      
-      // Convert to string if not already
-      if (aValue === null || aValue === undefined) aValue = '';
-      if (bValue === null || bValue === undefined) bValue = '';
-      
-      // Handle numeric comparisons
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-      
-      // Handle string comparisons
-      const aString = String(aValue).toLowerCase();
-      const bString = String(bValue).toLowerCase();
-      
-      if (aString < bString) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
-      }
-      if (aString > bString) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-  };
-
   // Safe rendering function for any field
   const safeRender = (value: any, isPercent = false, decimalPlaces = 1) => {
     if (value === null || value === undefined || value === '') return '-';
@@ -730,124 +373,54 @@ const Dashboard: React.FC = () => {
       }));
   };
 
-  // Filter procedures based on selected category
+  // Get filtered procedures based on selected category - FIXED to use category name mapping
   const filteredDentalProcedures = useMemo(() => {
     if (!selectedCategory) return dentalProcedures;
-    return dentalProcedures.filter(p => p.category_id === selectedCategory || p.procedure_category_id === selectedCategory);
-  }, [dentalProcedures, selectedCategory]);
-  
+    
+    // Filter by mapping the category names to hierarchy IDs
+    return dentalProcedures.filter(proc => {
+      // First try to match by direct ID
+      if (proc.category_id === selectedCategory || proc.procedure_category_id === selectedCategory) {
+        return true;
+      }
+      
+      // Then try to match by mapping the category name to hierarchy ID
+      const mappedCategoryId = mapCategoryToHierarchy(proc.category, 'dental');
+      return mappedCategoryId === selectedCategory;
+    });
+  }, [dentalProcedures, selectedCategory, dentalCategoryMap]);
+
+  // Same for aesthetic procedures
   const filteredAestheticProcedures = useMemo(() => {
     if (!selectedCategory) return aestheticProcedures;
-    return aestheticProcedures.filter(p => p.category_id === selectedCategory);
-  }, [aestheticProcedures, selectedCategory]);
-  
-  // Sort the filtered procedures
-  const sortedDentalProcedures = useMemo(() => 
-    sortProcedures(filteredDentalProcedures),
-    [filteredDentalProcedures, sortConfig]
-  );
-  
-  const sortedAestheticProcedures = useMemo(() => 
-    sortProcedures(filteredAestheticProcedures),
-    [filteredAestheticProcedures, sortConfig]
-  );
+    
+    return aestheticProcedures.filter(proc => {
+      // First try to match by direct ID
+      if (proc.category_id === selectedCategory || proc.procedure_category_id === selectedCategory) {
+        return true;
+      }
+      
+      // Then try to match by mapping the category name to hierarchy ID
+      const mappedCategoryId = mapCategoryToHierarchy(proc.category, 'aesthetic');
+      return mappedCategoryId === selectedCategory;
+    });
+  }, [aestheticProcedures, selectedCategory, aestheticCategoryMap]);
 
   // Already defined these at the component level to avoid React hooks order warning
   const currentDentalProcedures = useMemo(() => {
-    return sortedDentalProcedures.slice(
+    return filteredDentalProcedures.slice(
       dentalPage * dentalRowsPerPage,
       dentalPage * dentalRowsPerPage + dentalRowsPerPage
     );
-  }, [sortedDentalProcedures, dentalPage, dentalRowsPerPage]);
+  }, [filteredDentalProcedures, dentalPage, dentalRowsPerPage]);
 
   const currentAestheticProcedures = useMemo(() => {
-    return sortedAestheticProcedures.slice(
+    return filteredAestheticProcedures.slice(
       aestheticPage * aestheticRowsPerPage,
       aestheticPage * aestheticRowsPerPage + aestheticRowsPerPage
     );
-  }, [sortedAestheticProcedures, aestheticPage, aestheticRowsPerPage]);
+  }, [filteredAestheticProcedures, aestheticPage, aestheticRowsPerPage]);
 
-  // Sortable table header component
-  const SortableTableHeader = ({ field, children, align = 'left' }: { field: string; children: React.ReactNode, align?: 'left' | 'right' | 'center' }) => {
-    const isSorted = sortConfig.field === field;
-    const isAsc = sortConfig.direction === 'asc';
-    
-    return (
-      <TableCell 
-        align={align}
-        onClick={() => handleSort(field)}
-        sx={{ 
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          '&:hover': { 
-            backgroundColor: 'action.hover',
-          },
-          '& > *': {
-            display: 'flex',
-            alignItems: 'center',
-            width: '100%',
-            justifyContent: align === 'right' ? 'flex-end' : 
-                          align === 'center' ? 'center' : 'flex-start'
-          }
-        }}
-      >
-        <Box component="span">
-          {children}
-          {isSorted ? (
-            <Box component="span" sx={{ ml: 1, display: 'inline-flex' }}>
-              {isAsc ? '↑' : '↓'}
-            </Box>
-          ) : (
-            <Box component="span" sx={{ ml: 1, opacity: 0.5, display: 'inline-flex' }}>↕</Box>
-          )}
-        </Box>
-      </TableCell>
-    );
-  };
-
-  // Tab panel component for procedure detail modal
-  interface TabPanelProps {
-    children?: React.ReactNode;
-    index: number;
-    value: number;
-  }
-  
-  const TabPanel = (props: TabPanelProps) => {
-    const { children, value, index, ...other } = props;
-  
-    return (
-      <div
-        role="tabpanel"
-        hidden={value !== index}
-        id={`procedure-tabpanel-${index}`}
-        aria-labelledby={`procedure-tab-${index}`}
-        {...other}
-      >
-        {value === index && (
-          <Box sx={{ py: 2 }}>
-            {children}
-          </Box>
-        )}
-      </div>
-    );
-  };
-  
-  // Modal control functions
-  const handleOpenDetailModal = (procedure: any) => {
-    setSelectedProcedure(procedure);
-    setDetailModalOpen(true);
-    setActiveTab(0);
-  };
-
-  const handleCloseDetailModal = () => {
-    setDetailModalOpen(false);
-  };
-
-  // Tab change handler
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-  };
-  
   // Calculate current companies page data
   const currentDentalCompanies = useMemo(() => {
     return dentalCompanies.slice(
@@ -884,62 +457,59 @@ const Dashboard: React.FC = () => {
           variant="contained" 
           color="primary" 
           onClick={() => window.location.reload()}
+          sx={{ mt: 2 }}
         >
           Retry
         </Button>
       </Container>
     );
   }
-
+  
   return (
-    <Box sx={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%)',
-      pb: { xs: 2, md: 6 }
-    }}>
-      {Menubar}
-      <Container maxWidth="xl" sx={{ mt: { xs: 2, sm: 4 }, mb: { xs: 4, md: 8 }, p: { xs: 0.5, sm: 2 }, borderRadius: 3, boxShadow: { xs: 0, md: 4 }, background: '#fff' }}>
-        <Box>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 800, color: '#183153', letterSpacing: 1, textAlign: { xs: 'center', md: 'left' }, pt: 2 }}>
-            {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Procedures Dashboard
-          </Typography>
-        
-          <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: { xs: 'center', md: 'flex-start' }, gap: 2 }}>
-            <Typography component="span" sx={{ mr: 1, fontWeight: 600, color: '#1a3a5d' }}>Dental</Typography>
-            <Switch
-              checked={selectedIndustry === 'aesthetic'}
-              onChange={(e) => {
-                setSelectedIndustry(e.target.checked ? 'aesthetic' : 'dental');
-                setSelectedCategory(null);
-              }}
-              color="primary"
-              sx={{ transform: { xs: 'scale(1.2)', sm: 'scale(1)' } }}
-            />
-            <Typography component="span" sx={{ ml: 1, fontWeight: 600, color: '#d72660' }}>Aesthetic</Typography>
-          </Box>
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 8 }}>
+      <Typography variant="h4" gutterBottom>
+        {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Procedures Dashboard
+      </Typography>
       
-          {/* Main content grid */}
-          <Grid container spacing={3}>
-            {/* Left sidebar with categories hierarchy */}
-            <Grid item xs={12} md={3}>
-              <Box sx={{ height: '100%', background: { xs: 'none', md: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' }, borderRadius: 3, p: { xs: 1, md: 2 }, boxShadow: { xs: 0, md: 2 } }}>
-                <CategoryHierarchyView
-                  categories={categoryHierarchy}
-                  selectedIndustry={selectedIndustry}
-                  selectedCategory={selectedCategory}
-                  onSelectCategory={handleCategorySelect}
-                  loading={categoriesLoading}
-                />
-              </Box>
-            </Grid>
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
+        <Typography component="span" sx={{ mr: 1 }}>Dental</Typography>
+        <Switch
+          checked={selectedIndustry === 'aesthetic'}
+          onChange={(e) => {
+            setSelectedIndustry(e.target.checked ? 'aesthetic' : 'dental');
+            setSelectedCategory(null);
+          }}
+          color="primary"
+        />
+        <Typography component="span" sx={{ ml: 1 }}>Aesthetic</Typography>
+      </Box>
+
+      <MarketSizeOverview 
+        dentalProcedures={dentalProcedures}
+        aestheticProcedures={aestheticProcedures}
+        selectedIndustry={selectedIndustry}
+      />
+      
+      {/* Main content grid */}
+      <Grid container spacing={3}>
+        {/* Left sidebar with categories hierarchy */}
+        <Grid item xs={12} md={3}>
+          <CategoryHierarchyView
+            categories={categoryHierarchy}
+            selectedIndustry={selectedIndustry}
+            selectedCategory={selectedCategory}
+            onSelectCategory={handleCategorySelect}
+            loading={categoriesLoading}
+            industry={selectedIndustry}
+          />
+        </Grid>
         
-            {/* Main content area */}
-            <Grid item xs={12} md={9}>
-              <Box sx={{ height: '100%', p: { xs: 0, md: 2 }, borderRadius: 3, background: { xs: 'none', md: 'linear-gradient(135deg, #f8fafc 0%, #e9e9f0 100%)' }, boxShadow: { xs: 0, md: 2 } }}>
-                {/* Procedures section */}
-          <Card variant="outlined" sx={{ mb: 3, borderRadius: 3, boxShadow: 4, background: 'linear-gradient(120deg, #f8fafc 40%, #e9e9f0 100%)' }}>
+        {/* Main content area */}
+        <Grid item xs={12} md={9}>
+          {/* Procedures section */}
+          <Card variant="outlined" sx={{ mb: 3 }}>
             <CardContent>
-              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2, gap: 1 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" color="primary" gutterBottom>
                   {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Procedures
                   {selectedCategory && (
@@ -962,33 +532,22 @@ const Dashboard: React.FC = () => {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <SortableTableHeader field="name">Procedure Name</SortableTableHeader>
-                      <SortableTableHeader field="category">Category</SortableTableHeader>
-                      <SortableTableHeader field="average_cost_usd" align="right">Avg. Cost</SortableTableHeader>
-                      <SortableTableHeader field="yearly_growth_percentage" align="right">Growth %</SortableTableHeader>
-                      <SortableTableHeader field="market_size" align="right">Market Size 2025</SortableTableHeader>
-                      {selectedIndustry === 'aesthetic' ? (
-                        <SortableTableHeader field="downtime">Downtime</SortableTableHeader>
-                      ) : (
-                        <>
-                          <SortableTableHeader field="clinical_category">Clinical Category</SortableTableHeader>
-                          <SortableTableHeader field="cpt_cdt_code">CDT Code</SortableTableHeader>
-                        </>
+                      <TableCell>Procedure Name</TableCell>
+                      <TableCell>Category</TableCell>
+                      <TableCell align="right">Avg. Cost</TableCell>
+                      <TableCell align="right">Growth %</TableCell>
+                      <TableCell align="right">Market Size (USD M)</TableCell>
+                      {selectedIndustry === 'aesthetic' && (
+                        <TableCell>Downtime</TableCell>
+                      )}
+                      {selectedIndustry === 'dental' && (
+                        <TableCell>Clinical Category</TableCell>
                       )}
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {(selectedIndustry === 'dental' ? currentDentalProcedures : currentAestheticProcedures).map((proc) => (
-                      <TableRow 
-                        key={proc.id}
-                        onClick={() => handleOpenDetailModal(proc)}
-                        sx={{ 
-                          cursor: 'pointer',
-                          '&:hover': { 
-                            backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                          }
-                        }}   
-                      >
+                      <TableRow key={proc.id}>
                         <TableCell>
                           <Tooltip title={proc.description || 'No description available'}>
                             <Typography variant="body2">{proc.name}</Typography>
@@ -1005,57 +564,20 @@ const Dashboard: React.FC = () => {
                           {safeRender(proc.yearly_growth_percentage, true)}
                         </TableCell>
                         <TableCell align="right">
-                          {(() => {
-                            // Format large market size numbers more readably
-                            if (proc.market_size_2025_usd_millions) {
-                              const value = parseFloat(String(proc.market_size_2025_usd_millions));
-                              if (value >= 1000) {
-                                return `$${(value/1000).toFixed(1)}B`; // Billions with 1 decimal
-                              } else {
-                                return `$${value.toLocaleString()}M`; // Millions with comma formatting
-                              }
-                            }
-                            return '-';
-                          })()}
+                          {formatMarketSize(proc.market_size_usd_millions)}
                         </TableCell>
                         {selectedIndustry === 'aesthetic' && (
-                          <TableCell>
-                            {(() => {
-                              const downtime = (proc as any).downtime;
-                              if (!downtime) return '-';
-                              
-                              // Condense the downtime string for display
-                              const condensed = downtime
-                                .replace(/(\d+)\s*to\s*(\d+)/g, '$1-$2')  // Convert "X to Y" to "X-Y"
-                                .replace(/\s+/g, ' ')  // Collapse multiple spaces
-                                .replace(/\.\s+/g, ' • ')  // Replace ". " with " • "
-                                .trim();
-                              
-                              // Show first 30 chars with ellipsis if longer
-                              const displayText = condensed.length > 30 
-                                ? `${condensed.substring(0, 30)}...` 
-                                : condensed;
-                              
-                              return (
-                                <Tooltip title={downtime} arrow>
-                                  <span style={{ whiteSpace: 'nowrap' }}>{displayText}</span>
-                                </Tooltip>
-                              );
-                            })()}
-                          </TableCell>
+                          <TableCell>{(proc as any).downtime || '-'}</TableCell>
                         )}
                         {selectedIndustry === 'dental' && (
-                          <>
-                            <TableCell>{(proc as any).clinical_category || '-'}</TableCell>
-                            <TableCell>{proc.cpt_cdt_code || '-'}</TableCell>
-                          </>
+                          <TableCell>{(proc as any).clinical_category || '-'}</TableCell>
                         )}
                       </TableRow>
                     ))}
                     
                     {(selectedIndustry === 'dental' ? !currentDentalProcedures.length : !currentAestheticProcedures.length) && (
                       <TableRow>
-                        <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                        <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
                           <Typography variant="body2" color="text.secondary">
                             No procedures found
                             {selectedCategory ? ' for the selected category' : ''}
@@ -1077,18 +599,11 @@ const Dashboard: React.FC = () => {
                 rowsPerPage={selectedIndustry === 'dental' ? dentalRowsPerPage : aestheticRowsPerPage}
                 page={selectedIndustry === 'dental' ? dentalPage : aestheticPage}
                 onPageChange={selectedIndustry === 'dental' ? handleDentalChangePage : handleAestheticChangePage}
-                onRowsPerPageChange={selectedIndustry === 'dental' ? handleDentalChangeRowsPerPage : handleAestheticChangeRowsPerPage}
+                onRowsPerPageChange={selectedIndustry === 'dental' 
+                  ? handleDentalChangeRowsPerPage 
+                  : handleAestheticChangeRowsPerPage
+                }
               />
-            </CardContent>
-          </Card>
-          
-          {/* News section */}
-          <Card variant="outlined" sx={{ mt: 4, mb: 4 }}>
-            <CardContent>
-              <Typography variant="h6" color="primary" gutterBottom>
-                Industry News
-              </Typography>
-              <NewsDashboard />
             </CardContent>
           </Card>
           
@@ -1167,339 +682,10 @@ const Dashboard: React.FC = () => {
                 }
               />
             </CardContent>
-                </Card>
-              </Box>
-            </Grid>
-          </Grid>
-        </Box>
-      {/* Procedure Detail Modal */}
-      <Dialog
-        open={detailModalOpen}
-        onClose={handleCloseDetailModal}
-        maxWidth="md"
-        fullWidth
-        aria-labelledby="procedure-detail-dialog-title"
-        PaperProps={{
-          sx: {
-            borderRadius: '8px',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-          }
-        }}
-      >
-        {selectedProcedure && (
-          <>
-            <DialogTitle 
-              id="procedure-detail-dialog-title" 
-              sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                bgcolor: '#f8f9fa',
-                borderBottom: '1px solid #eaeaea'
-              }}
-            >
-              <Typography variant="h6" component="div" sx={{ fontWeight: 600, color: '#2c3e50' }}>
-                {selectedProcedure.name || selectedProcedure.procedure_name}
-              </Typography>
-              <IconButton
-                aria-label="close"
-                onClick={handleCloseDetailModal}
-                sx={{ color: '#94a3b8' }}
-              >
-                <CloseIcon />
-              </IconButton>
-            </DialogTitle>
-            <DialogContent sx={{ py: 3 }}>
-              {/* Basic info chips at the top */}
-              <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                <Chip 
-                  icon={<CategoryIcon />} 
-                  label={`Category: ${selectedProcedure.category || 'N/A'}`} 
-                  variant="outlined" 
-                  sx={{ 
-                    bgcolor: 'rgba(25, 118, 210, 0.05)',
-                    borderColor: 'primary.main',
-                    color: 'primary.main',
-                    fontWeight: 500
-                  }}
-                />
-                
-                {selectedProcedure.yearly_growth_percentage !== null && selectedProcedure.yearly_growth_percentage !== undefined && (
-                  <Chip 
-                    icon={<TrendingUpIcon />} 
-                    label={`Growth: ${selectedProcedure.yearly_growth_percentage.toFixed(1)}%`} 
-                    variant="outlined" 
-                    sx={{ 
-                      bgcolor: selectedProcedure.yearly_growth_percentage > 0 ? 'rgba(46, 125, 50, 0.05)' : 'rgba(211, 47, 47, 0.05)',
-                      borderColor: selectedProcedure.yearly_growth_percentage > 0 ? 'success.main' : 'error.main',
-                      color: selectedProcedure.yearly_growth_percentage > 0 ? 'success.main' : 'error.main',
-                      fontWeight: 500
-                    }}
-                  />
-                )}
-                
-                {selectedProcedure.average_cost_usd !== null && selectedProcedure.average_cost_usd !== undefined && (
-                  <Chip 
-                    icon={<AttachMoneyIcon />} 
-                    label={`Avg. Cost: $${selectedProcedure.average_cost_usd.toLocaleString()}`} 
-                    variant="outlined" 
-                    sx={{ 
-                      bgcolor: 'rgba(2, 136, 209, 0.05)',
-                      borderColor: 'info.main',
-                      color: 'info.main',
-                      fontWeight: 500
-                    }}
-                  />
-                )}
-              </Box>
-              
-              {/* Tabs for different sections */}
-              <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-                <Tabs 
-                  value={activeTab} 
-                  onChange={handleTabChange} 
-                  aria-label="procedure detail tabs"
-                  sx={{
-                    '& .MuiTab-root': {
-                      fontWeight: 500,
-                      textTransform: 'none',
-                      fontSize: '0.95rem',
-                    },
-                    '& .Mui-selected': {
-                      color: 'primary.main',
-                    }
-                  }}
-                >
-                  <Tab label="Overview" id="procedure-tab-0" aria-controls="procedure-tabpanel-0" />
-                  <Tab label="Technical Details" id="procedure-tab-1" aria-controls="procedure-tabpanel-1" />
-                  <Tab label="Market Data" id="procedure-tab-2" aria-controls="procedure-tabpanel-2" />
-                </Tabs>
-              </Box>
-              
-              {/* Overview Tab */}
-              <TabPanel value={activeTab} index={0}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12}>
-                    <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: '#2c3e50' }}>
-                      Description
-                    </Typography>
-                    <Typography variant="body1" sx={{ color: '#4a5568' }}>
-                      {selectedProcedure.description || selectedProcedure.expanded_description || 'No description available.'}
-                    </Typography>
-                  </Grid>
-                  
-                  {selectedIndustry === 'aesthetic' && selectedProcedure.body_areas_applicable && (
-                    <Grid item xs={12} sm={6}>
-                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
-                          Body Areas
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
-                          {selectedProcedure.body_areas_applicable}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  )}
-                  
-                  {selectedIndustry === 'aesthetic' && selectedProcedure.downtime && (
-                    <Grid item xs={12} sm={6}>
-                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
-                          Downtime
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
-                          {selectedProcedure.downtime}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  )}
-                  
-                  {selectedIndustry === 'dental' && selectedProcedure.cpt_cdt_code && (
-                    <Grid item xs={12} sm={6}>
-                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
-                          CDT Code
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
-                          {selectedProcedure.cpt_cdt_code}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  )}
-                </Grid>
-              </TabPanel>
-              
-              {/* Technical Details Tab */}
-              <TabPanel value={activeTab} index={1}>
-                <Grid container spacing={3}>
-                  {selectedProcedure.procedure_duration_min && (
-                    <Grid item xs={12} sm={6}>
-                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
-                          Procedure Duration
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
-                          {selectedProcedure.procedure_duration_min} minutes
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  )}
-                  
-                  {selectedProcedure.recovery_time_days && (
-                    <Grid item xs={12} sm={6}>
-                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
-                          Recovery Time
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
-                          {selectedProcedure.recovery_time_days} days
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  )}
-                  
-                  {selectedProcedure.complexity && (
-                    <Grid item xs={12} sm={6}>
-                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
-                          Complexity
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
-                          {selectedProcedure.complexity}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  )}
-                  
-                  {selectedProcedure.patient_satisfaction_score && (
-                    <Grid item xs={12} sm={6}>
-                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
-                          Patient Satisfaction
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={selectedProcedure.patient_satisfaction_score * 10} 
-                            sx={{ 
-                              flexGrow: 1, 
-                              mr: 2, 
-                              height: 10, 
-                              borderRadius: 5,
-                              backgroundColor: 'rgba(0,0,0,0.1)',
-                              '& .MuiLinearProgress-bar': {
-                                backgroundColor: 'primary.main',
-                              }
-                            }}
-                          />
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                            {selectedProcedure.patient_satisfaction_score}/10
-                          </Typography>
-                        </Box>
-                      </Paper>
-                    </Grid>
-                  )}
-                  
-                  {selectedProcedure.risks && (
-                    <Grid item xs={12}>
-                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
-                          Risks
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
-                          {selectedProcedure.risks}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  )}
-                  
-                  {selectedProcedure.contraindications && (
-                    <Grid item xs={12}>
-                      <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
-                          Contraindications
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#4a5568' }}>
-                          {selectedProcedure.contraindications}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  )}
-                </Grid>
-              </TabPanel>
-              
-              {/* Market Data Tab */}
-              <TabPanel value={activeTab} index={2}>
-                <Grid container spacing={3}>
-                  {selectedProcedure.market_size_2025_usd_millions && (
-                    <Grid item xs={12} sm={6} md={4}>
-                      <Paper elevation={0} sx={{ p: 3, backgroundColor: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
-                          Market Size 2025
-                        </Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                          {selectedProcedure.market_size_2025_usd_millions >= 1000 
-                            ? `$${(selectedProcedure.market_size_2025_usd_millions/1000).toFixed(1)}B` 
-                            : `$${selectedProcedure.market_size_2025_usd_millions.toLocaleString()}M`}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  )}
-                  
-                  {selectedProcedure.yearly_growth_percentage !== null && selectedProcedure.yearly_growth_percentage !== undefined && (
-                    <Grid item xs={12} sm={6} md={4}>
-                      <Paper elevation={0} sx={{ p: 3, backgroundColor: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
-                          Growth Rate
-                        </Typography>
-                        <Typography 
-                          variant="h5" 
-                          sx={{ 
-                            fontWeight: 700, 
-                            color: selectedProcedure.yearly_growth_percentage > 0 ? 'success.main' : 'error.main' 
-                          }}
-                        >
-                          {selectedProcedure.yearly_growth_percentage.toFixed(1)}%
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  )}
-                  
-                  {selectedProcedure.average_cost_usd && (
-                    <Grid item xs={12} sm={6} md={4}>
-                      <Paper elevation={0} sx={{ p: 3, backgroundColor: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#2c3e50', mb: 1 }}>
-                          Average Cost
-                        </Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 700, color: 'info.main' }}>
-                          ${selectedProcedure.average_cost_usd.toLocaleString()}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  )}
-                </Grid>
-              </TabPanel>
-            </DialogContent>
-            <DialogActions sx={{ p: 2, borderTop: '1px solid #eaeaea' }}>
-              <Button 
-                onClick={handleCloseDetailModal} 
-                variant="contained" 
-                disableElevation
-                sx={{ 
-                  textTransform: 'none', 
-                  px: 3,
-                  borderRadius: '6px',
-                  fontWeight: 500
-                }}
-              >
-                Close
-              </Button>
-            </DialogActions>
-          </>
-        )}
-      </Dialog>
-      </Container>
-    </Box>
+          </Card>
+        </Grid>
+      </Grid>
+    </Container>
   );
 };
 

@@ -29,7 +29,7 @@ interface MarketSizeOverviewProps {
 }
 
 // Utility function to format market size
-const formatMarketSize = (sizeInMillions: number | null | undefined): string => {
+export const formatMarketSize = (sizeInMillions: number | null | undefined): string => {
   if (sizeInMillions == null) return 'N/A';
   
   if (sizeInMillions >= 1000) {

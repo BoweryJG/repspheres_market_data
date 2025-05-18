@@ -55,6 +55,7 @@ const iconMap: Record<string, React.ReactNode> = {
 
 interface CategoryHierarchyViewProps {
   categories: CategoryHierarchy[];
+  industry: string;
   selectedIndustry: 'dental' | 'aesthetic';
   selectedCategory: number | null;
   onSelectCategory: (categoryId: number | null) => void;
@@ -63,6 +64,7 @@ interface CategoryHierarchyViewProps {
 
 const CategoryHierarchyView: React.FC<CategoryHierarchyViewProps> = ({
   categories,
+  industry,
   selectedIndustry,
   selectedCategory,
   onSelectCategory,
@@ -104,18 +106,21 @@ const CategoryHierarchyView: React.FC<CategoryHierarchyViewProps> = ({
   const GrowthIndicator = ({ growth }: { growth?: number }) => {
     if (!growth) return <span>-</span>;
     
-    let color = 'info';
-    if (growth > 15) color = 'success';
-    else if (growth < 5) color = 'warning';
+    let color = '#2196f3'; // info color
+    if (growth > 15) color = '#4caf50'; // success color
+    else if (growth < 5) color = '#ff9800'; // warning color
     
     return (
-      <Chip 
-        size="small"
-        color={color as any}
-        label={`${growth.toFixed(1)}%`}
-        icon={<TrendingUpIcon />}
-        sx={{ fontSize: '0.8rem' }}
-      />
+      <span style={{ 
+        display: 'inline-flex', 
+        alignItems: 'center',
+        fontSize: '0.8rem',
+        color: color,
+        fontWeight: 500
+      }}>
+        <TrendingUpIcon fontSize="small" style={{ marginRight: 4 }} />
+        {`${growth.toFixed(1)}%`}
+      </span>
     );
   };
 
@@ -170,23 +175,30 @@ const CategoryHierarchyView: React.FC<CategoryHierarchyViewProps> = ({
                 )}
               </Box>
             }
+            secondaryTypographyProps={{ component: 'div' }}
             secondary={
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5, gap: 1 }}>
-                <Tooltip title="Growth Rate">
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <GrowthIndicator growth={category.avg_growth_rate} />
-                  </Box>
-                </Tooltip>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Tooltip title="Growth Rate" placement="top">
+                    <span>
+                      <GrowthIndicator growth={category.avg_growth_rate} />
+                    </span>
+                  </Tooltip>
+                </Box>
                 
-                <Tooltip title="Market Size">
-                  <Chip
-                    size="small"
-                    variant="outlined"
-                    label={formatMarketSize(category.market_size_usd_millions)}
-                    icon={<MonetizationOnIcon fontSize="small" />}
-                    sx={{ fontSize: '0.75rem' }}
-                  />
-                </Tooltip>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Tooltip title="Market Size" placement="top">
+                    <span>
+                      <Chip
+                        size="small"
+                        variant="outlined"
+                        label={formatMarketSize(category.market_size_usd_millions)}
+                        icon={<MonetizationOnIcon fontSize="small" />}
+                        sx={{ fontSize: '0.75rem' }}
+                      />
+                    </span>
+                  </Tooltip>
+                </Box>
               </Box>
             }
           />
