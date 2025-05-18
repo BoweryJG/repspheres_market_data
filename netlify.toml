@@ -1,0 +1,13 @@
+[build]
+  command = "vite build"
+  publish = "dist"
+
+# If you need to set environment variables for all deploys
+[build.environment]
+  NODE_VERSION = "16"
+
+# Redirects for single-page applications
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
