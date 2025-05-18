@@ -22,6 +22,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard'; // For Workspace
 import MemoryIcon from '@mui/icons-material/Memory'; // For Sphere OS
 // Explicitly import with type information to resolve module not found error
 import { useOrbContext } from './OrbContextProvider';
+import ThemeToggle from '../components/ThemeToggle'; // Import ThemeToggle component
 
 // Fallback type definition in case import fails
 type OrbContextType = {
@@ -213,6 +214,14 @@ export default function NavBar() {
                 <ListItem disablePadding>
                   <MenuItem component="a" href="https://repspheres.com/legal" sx={{ color: '#fff' }}>Legal</MenuItem>
                 </ListItem>
+                {/* Theme Toggle in Mobile Menu */}
+                <ListItem disablePadding>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', px: 2, py: 1 }}>
+                    <span style={{ color: '#fff' }}>Toggle Theme</span>
+                    <ThemeToggle />
+                  </Box>
+                </ListItem>
+                <Box sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', my: 1, mx: 2 }} />
                 {/* End More Menu */}
                 <ListItem disablePadding>
                   <ListItemButton component="a" href="/login.html" sx={{
@@ -322,6 +331,14 @@ export default function NavBar() {
                   },
                 }}
               >
+                {/* Theme Toggle in Menu */}
+                <MenuItem onClick={() => setMenuAnchorEl(null)} sx={{ color: '#fff' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <span>Toggle Theme</span>
+                    <ThemeToggle />
+                  </Box>
+                </MenuItem>
+                <Box sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', my: 1 }} />
                 <MenuItem component="a" href="https://repspheres.com/about" onClick={() => setMenuAnchorEl(null)} sx={{ color: '#fff' }}>About RepSpheres</MenuItem>
                 <MenuItem component="a" href="https://repspheres.com/contact" onClick={() => setMenuAnchorEl(null)} sx={{ color: '#fff' }}>Contact</MenuItem>
                 <MenuItem component="a" href="https://repspheres.com/careers" onClick={() => setMenuAnchorEl(null)} sx={{ color: '#fff' }}>Careers</MenuItem>

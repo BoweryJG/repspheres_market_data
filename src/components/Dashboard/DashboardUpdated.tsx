@@ -451,6 +451,7 @@ const Dashboard: React.FC = () => {
             selectedCategory={selectedCategory}
             onSelectCategory={handleCategorySelect}
             loading={categoriesLoading}
+            industry={selectedIndustry} // Added missing industry prop
           />
         </Grid>
         
