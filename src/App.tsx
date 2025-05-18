@@ -1,6 +1,8 @@
 import React from 'react';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import Dashboard from './components/Dashboard/DashboardFixed';
+import { OrbContextProvider } from './assets/OrbContextProvider';
+import NavBar from './assets/menubar';
 
 // Create a theme instance
 const theme = createTheme({
@@ -62,7 +64,10 @@ const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Dashboard />
+      <OrbContextProvider>
+        <NavBar />
+        <Dashboard />
+      </OrbContextProvider>
     </ThemeProvider>
   );
 };
