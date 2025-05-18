@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --save-dev @types/node && npx vite build"
+  command = "npm install @supabase/supabase-js && npm install --save-dev @types/node && npx vite build"
   publish = "dist"
 
 # If you need to set environment variables for all deploys
