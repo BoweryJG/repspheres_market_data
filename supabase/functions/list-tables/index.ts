@@ -1,6 +1,6 @@
-/// <reference types="https://deno.land/x/supabase@edge-runtime.d.ts" />
-import { serve } from 'std/http/server.ts';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+// Use the types from our local types.d.ts file instead of a remote reference
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.21.0';
 
 // Define types for the database schema
 type TableInfo = {
@@ -56,19 +56,19 @@ serve(async (req) => {
           .from(table.tablename)
           .select('*', { count: 'exact', head: true })
         
-        let sampleData = null
+        let sampleData: any[] | null = null
         if (count && count > 0) {
           const { data: sample } = await supabase
             .from(table.tablename)
             .select('*')
             .limit(2)
-          sampleData = sample
+          sampleData = sample || null
         }
 
         return {
           name: table.tablename,
           rowCount: count || 0,
-          columns: sampleData && sampleData.length > 0 ? Object.keys(sampleData[0] as object) : [],
+          columns: sampleData && Array.isArray(sampleData) && sampleData.length > 0 ? Object.keys(sampleData[0] as object) : [],
           sample: sampleData
         }
       })

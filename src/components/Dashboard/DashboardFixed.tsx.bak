@@ -26,6 +26,9 @@ import {
 import { supabase } from '../../services/supabaseClient';
 import { DentalCategory, AestheticCategory, CategoryHierarchy } from '../../types';
 import CategoryHierarchyView from './CategoryHierarchyView';
+import MarketSizeOverview, { formatMarketSize } from './MarketSizeOverview';
+import ProcedureDetailsModal from './ProcedureDetailsModal';
+import TableSortLabel from '@mui/material/TableSortLabel';
 
 const Dashboard: React.FC = () => {
   // State for procedures and companies
@@ -48,6 +51,12 @@ const Dashboard: React.FC = () => {
   // UI state
   const [selectedIndustry, setSelectedIndustry] = useState<'dental' | 'aesthetic'>('dental');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [selectedProcedure, setSelectedProcedure] = useState<any | null>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState<boolean>(false);
+  
+  // Sorting state
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+  const [orderBy, setOrderBy] = useState<string>('name');
 
   // Pagination state for procedures
   const [dentalPage, setDentalPage] = useState(0);
@@ -207,8 +216,10 @@ const Dashboard: React.FC = () => {
         if (dentalResponse.error) throw new Error(`Dental procedures: ${dentalResponse.error.message}`);
         if (aestheticResponse.error) throw new Error(`Aesthetic procedures: ${aestheticResponse.error.message}`);
         
-        console.log('Dental data:', dentalResponse.data);
-        console.log('Aesthetic data:', aestheticResponse.data);
+        console.log('Dental data (full):', dentalResponse.data);
+        console.log('Aesthetic data (full):', aestheticResponse.data);
+        console.log('Sample dental raw data (market_size_usd_millions):', dentalResponse.data?.slice(0, 5).map(p => ({ id: p.id, name: p.procedure_name || p.name, market_size: p.market_size_usd_millions })));
+        console.log('Sample aesthetic raw data (market_size_usd_millions):', aestheticResponse.data?.slice(0, 5).map(p => ({ id: p.id, name: p.procedure_name || p.name, market_size: p.market_size_usd_millions })));
         
         const dentalProcs = (dentalResponse.data || []).map(proc => ({
           ...proc,
@@ -217,7 +228,8 @@ const Dashboard: React.FC = () => {
           category: proc.category || proc.procedure_category || '',
           clinical_category: proc.clinical_category || proc.specialty || '',
           average_cost_usd: proc.average_cost_usd || proc.cost || proc.price || 0,
-          yearly_growth_percentage: proc.yearly_growth_percentage || proc.growth_rate || 0
+          yearly_growth_percentage: proc.yearly_growth_percentage || proc.growth_rate || 0,
+          market_size_usd_millions: proc.market_size_usd_millions || 0
         }));
         
         const aestheticProcs = (aestheticResponse.data || []).map(proc => ({
@@ -228,11 +240,14 @@ const Dashboard: React.FC = () => {
           average_cost_usd: proc.average_cost_usd || proc.cost || proc.cost_range || 0,
           yearly_growth_percentage: proc.yearly_growth_percentage || proc.trend_score || 0,
           downtime: proc.downtime || '',
-          body_areas_applicable: proc.body_areas_applicable || proc.body_area || ''
+          body_areas_applicable: proc.body_areas_applicable || proc.body_area || '',
+          market_size_usd_millions: proc.market_size_usd_millions || 0
         }));
         
         console.log(`Loaded ${dentalProcs.length} dental procedures`);
+        console.log('Sample mapped dentalProcs (market_size_usd_millions):', dentalProcs.slice(0, 5).map(p => ({ id: p.id, name: p.name, market_size: p.market_size_usd_millions })));
         console.log(`Loaded ${aestheticProcs.length} aesthetic procedures`);
+        console.log('Sample mapped aestheticProcs (market_size_usd_millions):', aestheticProcs.slice(0, 5).map(p => ({ id: p.id, name: p.name, market_size: p.market_size_usd_millions })));
         
         setDentalProcedures(dentalProcs);
         setAestheticProcedures(aestheticProcs);
@@ -256,7 +271,7 @@ const Dashboard: React.FC = () => {
     if (!categoryName) return null;
     
     const categoryMap = industry === 'dental' ? dentalCategoryMap : aestheticCategoryMap;
-    return categoryMap[categoryName] || null;
+    return categoryMap[categoryName as keyof typeof categoryMap] || null;
   };
 
   // Pagination handlers for procedures
@@ -394,287 +409,153 @@ const Dashboard: React.FC = () => {
     if (!selectedCategory) return aestheticProcedures;
     
     return aestheticProcedures.filter(proc => {
-      // First try to match by direct ID
-      if (proc.category_id === selectedCategory || proc.procedure_category_id === selectedCategory) {
-        return true;
-      }
-      
-      // Then try to match by mapping the category name to hierarchy ID
-      const mappedCategoryId = mapCategoryToHierarchy(proc.category, 'aesthetic');
-      return mappedCategoryId === selectedCategory;
-    });
-  }, [aestheticProcedures, selectedCategory, aestheticCategoryMap]);
+}, [filteredDentalProcedures, dentalPage, dentalRowsPerPage, order, orderBy]);
 
-  // Already defined these at the component level to avoid React hooks order warning
-  const currentDentalProcedures = useMemo(() => {
-    return filteredDentalProcedures.slice(
-      dentalPage * dentalRowsPerPage,
-      dentalPage * dentalRowsPerPage + dentalRowsPerPage
-    );
-  }, [filteredDentalProcedures, dentalPage, dentalRowsPerPage]);
-
-  const currentAestheticProcedures = useMemo(() => {
-    return filteredAestheticProcedures.slice(
-      aestheticPage * aestheticRowsPerPage,
-      aestheticPage * aestheticRowsPerPage + aestheticRowsPerPage
-    );
-  }, [filteredAestheticProcedures, aestheticPage, aestheticRowsPerPage]);
-
-  // Calculate current companies page data
-  const currentDentalCompanies = useMemo(() => {
-    return dentalCompanies.slice(
-      dentalCompanyPage * dentalCompanyRowsPerPage,
-      dentalCompanyPage * dentalCompanyRowsPerPage + dentalCompanyRowsPerPage
-    );
-  }, [dentalCompanies, dentalCompanyPage, dentalCompanyRowsPerPage]);
-
-  const currentAestheticCompanies = useMemo(() => {
-    return aestheticCompanies.slice(
-      aestheticCompanyPage * aestheticCompanyRowsPerPage,
-      aestheticCompanyPage * aestheticCompanyRowsPerPage + aestheticCompanyRowsPerPage
-    );
-  }, [aestheticCompanies, aestheticCompanyPage, aestheticCompanyRowsPerPage]);
-
-  // Loading state
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <CircularProgress size={60} thickness={4} />
-        <Typography variant="h6" sx={{ ml: 2 }}>Loading all procedures...</Typography>
-      </Box>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Alert severity="error" sx={{ my: 2 }}>
-          {error}
-        </Alert>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={() => window.location.reload()}
-          sx={{ mt: 2 }}
-        >
-          Retry
-        </Button>
-      </Container>
-    );
-  }
-  
-  return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 8 }}>
-      <Typography variant="h4" gutterBottom>
-        {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Procedures Dashboard
-      </Typography>
-      
-      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
-        <Typography component="span" sx={{ mr: 1 }}>Dental</Typography>
-        <Switch
-          checked={selectedIndustry === 'aesthetic'}
-          onChange={(e) => {
-            setSelectedIndustry(e.target.checked ? 'aesthetic' : 'dental');
-            setSelectedCategory(null);
-          }}
-          color="primary"
-        />
-        <Typography component="span" sx={{ ml: 1 }}>Aesthetic</Typography>
-      </Box>
-      
-      {/* Main content grid */}
-      <Grid container spacing={3}>
-        {/* Left sidebar with categories hierarchy */}
-        <Grid item xs={12} md={3}>
-          <CategoryHierarchyView
-            categories={categoryHierarchy}
-            selectedIndustry={selectedIndustry}
-            selectedCategory={selectedCategory}
-            onSelectCategory={handleCategorySelect}
-            loading={categoriesLoading}
-          />
-        </Grid>
-        
-        {/* Main content area */}
-        <Grid item xs={12} md={9}>
-          {/* Procedures section */}
-          <Card variant="outlined" sx={{ mb: 3 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" color="primary" gutterBottom>
-                  {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Procedures
-                  {selectedCategory && (
-                    <> - {categoryHierarchy.find(c => c.id === selectedCategory)?.name || ''}</>
-                  )}
-                </Typography>
-                
-                {selectedCategory && (
-                  <Button 
-                    size="small" 
-                    variant="outlined" 
-                    onClick={() => setSelectedCategory(null)}
-                  >
-                    Clear Filter
-                  </Button>
-                )}
-              </Box>
-              
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Procedure Name</TableCell>
-                      <TableCell>Category</TableCell>
-                      <TableCell align="right">Avg. Cost</TableCell>
-                      <TableCell align="right">Growth %</TableCell>
-                      {selectedIndustry === 'aesthetic' && (
-                        <TableCell>Downtime</TableCell>
-                      )}
-                      {selectedIndustry === 'dental' && (
-                        <TableCell>Clinical Category</TableCell>
-                      )}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(selectedIndustry === 'dental' ? currentDentalProcedures : currentAestheticProcedures).map((proc) => (
-                      <TableRow key={proc.id}>
-                        <TableCell>
-                          <Tooltip title={proc.description || 'No description available'}>
-                            <Typography variant="body2">{proc.name}</Typography>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell>{proc.category}</TableCell>
-                        <TableCell align="right">
-                          {typeof proc.average_cost_usd === 'number' 
-                            ? `$${proc.average_cost_usd.toLocaleString()}`
-                            : safeRender(proc.average_cost_usd)
-                          }
-                        </TableCell>
-                        <TableCell align="right">
-                          {safeRender(proc.yearly_growth_percentage, true)}
-                        </TableCell>
-                        {selectedIndustry === 'aesthetic' && (
-                          <TableCell>{(proc as any).downtime || '-'}</TableCell>
-                        )}
-                        {selectedIndustry === 'dental' && (
-                          <TableCell>{(proc as any).clinical_category || '-'}</TableCell>
-                        )}
-                      </TableRow>
-                    ))}
-                    
-                    {(selectedIndustry === 'dental' ? !currentDentalProcedures.length : !currentAestheticProcedures.length) && (
-                      <TableRow>
-                        <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            No procedures found
-                            {selectedCategory ? ' for the selected category' : ''}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              
-              <TablePagination
-                rowsPerPageOptions={[5, 10, 25, 50]}
-                component="div"
-                count={selectedIndustry === 'dental' 
-                  ? filteredDentalProcedures.length 
-                  : filteredAestheticProcedures.length
-                }
-                rowsPerPage={selectedIndustry === 'dental' ? dentalRowsPerPage : aestheticRowsPerPage}
-                page={selectedIndustry === 'dental' ? dentalPage : aestheticPage}
-                onPageChange={selectedIndustry === 'dental' ? handleDentalChangePage : handleAestheticChangePage}
-                onRowsPerPageChange={selectedIndustry === 'dental' 
-                  ? handleDentalChangeRowsPerPage 
-                  : handleAestheticChangeRowsPerPage
-                }
-              />
-            </CardContent>
-          </Card>
-          
-          {/* Companies section */}
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="h6" color="primary" gutterBottom>
-                {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Companies
-              </Typography>
-              
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Company Name</TableCell>
-                      <TableCell>Headquarters</TableCell>
-                      <TableCell align="right">Market Share %</TableCell>
-                      <TableCell align="right">Sales ($M)</TableCell>
-                      <TableCell align="right">Growth %</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(selectedIndustry === 'dental' ? currentDentalCompanies : currentAestheticCompanies).map((company) => (
-                      <TableRow key={company.id}>
-                        <TableCell>
-                          <Tooltip title={company.description || 'No description available'}>
-                            <Typography variant="body2">{company.name}</Typography>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell>{company.headquarters || '-'}</TableCell>
-                        <TableCell align="right">{safeRender(company.market_share_pct, true)}</TableCell>
-                        <TableCell align="right">
-                          {company.last_year_sales_usd_million 
-                            ? `$${company.last_year_sales_usd_million.toLocaleString()}`
-                            : '-'
-                          }
-                        </TableCell>
-                        <TableCell align="right">
-                          {safeRender(company.projected_growth_pct, true)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    
-                    {(selectedIndustry === 'dental' ? !currentDentalCompanies.length : !currentAestheticCompanies.length) && (
-                      <TableRow>
-                        <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            No companies found
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              
-              <TablePagination
-                rowsPerPageOptions={[5, 10, 25, 50]}
-                component="div"
-                count={selectedIndustry === 'dental' 
-                  ? dentalCompanies.length 
-                  : aestheticCompanies.length
-                }
-                rowsPerPage={selectedIndustry === 'dental' 
-                  ? dentalCompanyRowsPerPage 
-                  : aestheticCompanyRowsPerPage
-                }
-                page={selectedIndustry === 'dental' ? dentalCompanyPage : aestheticCompanyPage}
-                onPageChange={selectedIndustry === 'dental' 
-                  ? handleDentalCompanyChangePage 
-                  : handleAestheticCompanyChangePage
-                }
-                onRowsPerPageChange={selectedIndustry === 'dental' 
-                  ? handleDentalCompanyChangeRowsPerPage 
-                  : handleAestheticCompanyChangeRowsPerPage
-                }
-              />
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Container>
+const currentAestheticProcedures = useMemo(() => {
+  const sortedData = stableSort(
+    filteredAestheticProcedures, 
+    getComparator(order, orderBy as keyof typeof filteredAestheticProcedures[0])
   );
-};
+  return sortedData.slice(
+    aestheticPage * aestheticRowsPerPage,
+    aestheticPage * aestheticRowsPerPage + aestheticRowsPerPage
+  );
+}, [filteredAestheticProcedures, aestheticPage, aestheticRowsPerPage, order, orderBy]);
+
+// ... (rest of the code remains the same)
+
+// Procedures section
+<Card variant="outlined" sx={{ mb: 3 }}>
+  // ... (rest of the code remains the same)
+
+  <TableContainer component={Paper} variant="outlined">
+    <Table size="small">
+      <TableHead>
+        <TableRow>
+          <TableCell>
+            <TableSortLabel
+              active={orderBy === 'name'}
+              direction={orderBy === 'name' ? order : 'asc'}
+              onClick={() => handleRequestSort('name')}
+            >
+              Procedure Name
+            </TableSortLabel>
+          </TableCell>
+          <TableCell>
+            <TableSortLabel
+              active={orderBy === 'category'}
+              direction={orderBy === 'category' ? order : 'asc'}
+              onClick={() => handleRequestSort('category')}
+            >
+              Category
+            </TableSortLabel>
+          </TableCell>
+          <TableCell align="right">
+            <TableSortLabel
+              active={orderBy === 'average_cost_usd'}
+              direction={orderBy === 'average_cost_usd' ? order : 'asc'}
+              onClick={() => handleRequestSort('average_cost_usd')}
+            >
+              Avg. Cost
+            </TableSortLabel>
+          </TableCell>
+          <TableCell align="right">
+            <TableSortLabel
+              active={orderBy === 'yearly_growth_percentage'}
+              direction={orderBy === 'yearly_growth_percentage' ? order : 'asc'}
+              onClick={() => handleRequestSort('yearly_growth_percentage')}
+            >
+              Growth %
+            </TableSortLabel>
+          </TableCell>
+          <TableCell align="right">
+            <TableSortLabel
+              active={orderBy === 'market_size_usd_millions'}
+              direction={orderBy === 'market_size_usd_millions' ? order : 'asc'}
+              onClick={() => handleRequestSort('market_size_usd_millions')}
+            >
+              Market Size
+            </TableSortLabel>
+          </TableCell>
+          {selectedIndustry === 'aesthetic' && (
+            <TableCell>
+              <TableSortLabel
+                active={orderBy === 'downtime'}
+                direction={orderBy === 'downtime' ? order : 'asc'}
+                onClick={() => handleRequestSort('downtime')}
+              >
+                Downtime
+              </TableSortLabel>
+            </TableCell>
+          )}
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {(selectedIndustry === 'dental' ? currentDentalProcedures : currentAestheticProcedures).map((proc) => (
+          <TableRow 
+            key={proc.id}
+            onClick={() => handleProcedureClick(proc)}
+            sx={{ 
+              cursor: 'pointer', 
+              '&:hover': { 
+                bgcolor: 'action.hover' 
+              } 
+            }}
+          >
+            <TableCell>
+              <Tooltip title={proc.description || 'No description available'}>
+                <Typography variant="body2">{proc.name}</Typography>
+              </Tooltip>
+            </TableCell>
+            <TableCell>{proc.category}</TableCell>
+            <TableCell align="right">
+              {typeof proc.average_cost_usd === 'number' 
+                ? `$${proc.average_cost_usd.toLocaleString()}`
+                : safeRender(proc.average_cost_usd)
+              }
+            </TableCell>
+            <TableCell align="right">
+              {safeRender(proc.yearly_growth_percentage, true)}
+            </TableCell>
+            <TableCell align="right">
+              {formatMarketSize(proc.market_size_usd_millions)}
+            </TableCell>
+            {selectedIndustry === 'aesthetic' && (
+              <TableCell>{(proc as any).downtime || '-'}</TableCell>
+            )}
+          </TableRow>
+        ))}
+        
+        {(selectedIndustry === 'dental' ? !currentDentalProcedures.length : !currentAestheticProcedures.length) && (
+          <TableRow>
+            <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                No procedures found
+                {selectedCategory ? ' for the selected category' : ''}
+              </Typography>
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  </TableContainer>
+  
+  <TablePagination
+    rowsPerPageOptions={[5, 10, 25, 50]}
+    component="div"
+    count={selectedIndustry === 'dental' 
+      ? filteredDentalProcedures.length 
+      : filteredAestheticProcedures.length
+    }
+    rowsPerPage={selectedIndustry === 'dental' ? dentalRowsPerPage : aestheticRowsPerPage}
+    page={selectedIndustry === 'dental' ? dentalPage : aestheticPage}
+    onPageChange={selectedIndustry === 'dental' ? handleDentalChangePage : handleAestheticChangePage}
+    onRowsPerPageChange={selectedIndustry === 'dental' 
+      ? handleDentalChangeRowsPerPage 
+      : handleAestheticChangeRowsPerPage
+    }
+  />
+</CardContent>
+</Card>
 
 export default Dashboard;

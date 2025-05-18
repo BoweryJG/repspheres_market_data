@@ -21,12 +21,18 @@ import {
   Button,
   Chip,
   LinearProgress,
-  Tooltip
+  Tooltip,
+  Badge
 } from '@mui/material';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import { visuallyHidden } from '@mui/utils';
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import PublicIcon from '@mui/icons-material/Public';
 import { supabase } from '../../services/supabaseClient';
 import { DentalCategory, AestheticCategory, CategoryHierarchy } from '../../types';
 import CategoryHierarchyView from './CategoryHierarchyView';
 import MarketSizeOverview, { formatMarketSize } from './MarketSizeOverview';
+import ProcedureDetailsModal from './ProcedureDetailsModal';
 
 const Dashboard: React.FC = () => {
   // State for procedures and companies
@@ -49,7 +55,13 @@ const Dashboard: React.FC = () => {
   // UI state
   const [selectedIndustry, setSelectedIndustry] = useState<'dental' | 'aesthetic'>('dental');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-
+  const [selectedProcedure, setSelectedProcedure] = useState<any | null>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState<boolean>(false);
+  
+  // Sorting state
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+  const [orderBy, setOrderBy] = useState<string>('name');
+  
   // Pagination state for procedures
   const [dentalPage, setDentalPage] = useState(0);
   const [dentalRowsPerPage, setDentalRowsPerPage] = useState(10);
@@ -406,20 +418,69 @@ const Dashboard: React.FC = () => {
     });
   }, [aestheticProcedures, selectedCategory, aestheticCategoryMap]);
 
-  // Already defined these at the component level to avoid React hooks order warning
+  // Sorting functions
+  function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
+    if (b[orderBy] < a[orderBy]) {
+      return -1;
+    }
+    if (b[orderBy] > a[orderBy]) {
+      return 1;
+    }
+    return 0;
+  }
+
+  type Order = 'asc' | 'desc';
+
+  function getComparator<Key extends keyof any>(
+    order: Order,
+    orderBy: Key,
+  ): (a: { [key in Key]: number | string }, b: { [key in Key]: number | string }) => number {
+    return order === 'desc'
+      ? (a, b) => descendingComparator(a, b, orderBy)
+      : (a, b) => -descendingComparator(a, b, orderBy);
+  }
+
+  function stableSort<T>(array: readonly T[], comparator: (a: T, b: T) => number) {
+    const stabilizedThis = array.map((el, index) => [el, index] as [T, number]);
+    stabilizedThis.sort((a, b) => {
+      const order = comparator(a[0], b[0]);
+      if (order !== 0) {
+        return order;
+      }
+      return a[1] - b[1];
+    });
+    return stabilizedThis.map((el) => el[0]);
+  }
+
+  const handleRequestSort = (property: string) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  // Sorted procedures arrays
+  const sortedDentalProcedures = useMemo(() => {
+    return stableSort(filteredDentalProcedures, getComparator(order, orderBy));
+  }, [filteredDentalProcedures, order, orderBy]);
+
+  const sortedAestheticProcedures = useMemo(() => {
+    return stableSort(filteredAestheticProcedures, getComparator(order, orderBy));
+  }, [filteredAestheticProcedures, order, orderBy]);
+
+  // Get paginated procedures
   const currentDentalProcedures = useMemo(() => {
-    return filteredDentalProcedures.slice(
+    return sortedDentalProcedures.slice(
       dentalPage * dentalRowsPerPage,
       dentalPage * dentalRowsPerPage + dentalRowsPerPage
     );
-  }, [filteredDentalProcedures, dentalPage, dentalRowsPerPage]);
+  }, [sortedDentalProcedures, dentalPage, dentalRowsPerPage]);
 
   const currentAestheticProcedures = useMemo(() => {
-    return filteredAestheticProcedures.slice(
+    return sortedAestheticProcedures.slice(
       aestheticPage * aestheticRowsPerPage,
       aestheticPage * aestheticRowsPerPage + aestheticRowsPerPage
     );
-  }, [filteredAestheticProcedures, aestheticPage, aestheticRowsPerPage]);
+  }, [sortedAestheticProcedures, aestheticPage, aestheticRowsPerPage]);
 
   // Calculate current companies page data
   const currentDentalCompanies = useMemo(() => {
@@ -467,9 +528,38 @@ const Dashboard: React.FC = () => {
   
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 8 }}>
-      <Typography variant="h4" gutterBottom>
-        {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Procedures Dashboard
-      </Typography>
+      {/* Procedure Details Modal */}
+      <ProcedureDetailsModal
+        open={detailsModalOpen}
+        procedure={selectedProcedure}
+        onClose={() => setDetailsModalOpen(false)}
+        industry={selectedIndustry}
+      />
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        <Typography variant="h4" component="div">
+          US {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Market Dashboard
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', ml: 2, bgcolor: 'rgba(0, 128, 0, 0.1)', px: 2, py: 0.8, borderRadius: 2, border: '1px solid rgba(0, 128, 0, 0.3)' }}>
+          <FiberManualRecordIcon sx={{ color: '#00c853', animation: 'pulse 1.5s infinite', mr: 1 }} fontSize="small" />
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+              LIVE US MARKET INSIGHTS
+              <PublicIcon sx={{ ml: 1, color: '#00c853' }} fontSize="small" />
+            </Typography>
+            <Typography variant="caption" sx={{ fontSize: '0.7rem', color: '#00796b', display: 'block', mt: -0.5 }}>
+              Real-time data analysis updated every 24 hours
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+      
+      <style>{`
+        @keyframes pulse {
+          0% { opacity: 1; }
+          50% { opacity: 0.4; }
+          100% { opacity: 1; }
+        }
+      `}</style>
       
       <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
         <Typography component="span" sx={{ mr: 1 }}>Dental</Typography>
@@ -532,26 +622,112 @@ const Dashboard: React.FC = () => {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell>Procedure Name</TableCell>
-                      <TableCell>Category</TableCell>
-                      <TableCell align="right">Avg. Cost</TableCell>
-                      <TableCell align="right">Growth %</TableCell>
-                      <TableCell align="right">Market Size (USD M)</TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={orderBy === 'name'}
+                          direction={orderBy === 'name' ? order : 'asc'}
+                          onClick={() => handleRequestSort('name')}
+                        >
+                          Procedure Name
+                          {orderBy === 'name' ? (
+                            <Box component="span" sx={visuallyHidden}>
+                              {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                            </Box>
+                          ) : null}
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={orderBy === 'category'}
+                          direction={orderBy === 'category' ? order : 'asc'}
+                          onClick={() => handleRequestSort('category')}
+                        >
+                          Category
+                          {orderBy === 'category' ? (
+                            <Box component="span" sx={visuallyHidden}>
+                              {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                            </Box>
+                          ) : null}
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={orderBy === 'average_cost_usd'}
+                          direction={orderBy === 'average_cost_usd' ? order : 'asc'}
+                          onClick={() => handleRequestSort('average_cost_usd')}
+                        >
+                          Avg. Cost
+                          {orderBy === 'average_cost_usd' ? (
+                            <Box component="span" sx={visuallyHidden}>
+                              {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                            </Box>
+                          ) : null}
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={orderBy === 'yearly_growth_percentage'}
+                          direction={orderBy === 'yearly_growth_percentage' ? order : 'asc'}
+                          onClick={() => handleRequestSort('yearly_growth_percentage')}
+                        >
+                          Growth %
+                          {orderBy === 'yearly_growth_percentage' ? (
+                            <Box component="span" sx={visuallyHidden}>
+                              {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                            </Box>
+                          ) : null}
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={orderBy === 'market_size_usd_millions'}
+                          direction={orderBy === 'market_size_usd_millions' ? order : 'asc'}
+                          onClick={() => handleRequestSort('market_size_usd_millions')}
+                        >
+                          Market Size (USD M)
+                          {orderBy === 'market_size_usd_millions' ? (
+                            <Box component="span" sx={visuallyHidden}>
+                              {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                            </Box>
+                          ) : null}
+                        </TableSortLabel>
+                      </TableCell>
                       {selectedIndustry === 'aesthetic' && (
-                        <TableCell>Downtime</TableCell>
+                        <TableCell>
+                          <TableSortLabel
+                            active={orderBy === 'downtime'}
+                            direction={orderBy === 'downtime' ? order : 'asc'}
+                            onClick={() => handleRequestSort('downtime')}
+                          >
+                            Downtime
+                            {orderBy === 'downtime' ? (
+                              <Box component="span" sx={visuallyHidden}>
+                                {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                              </Box>
+                            ) : null}
+                          </TableSortLabel>
+                        </TableCell>
                       )}
-                      {selectedIndustry === 'dental' && (
-                        <TableCell>Clinical Category</TableCell>
-                      )}
+
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {(selectedIndustry === 'dental' ? currentDentalProcedures : currentAestheticProcedures).map((proc) => (
                       <TableRow key={proc.id}>
                         <TableCell>
-                          <Tooltip title={proc.description || 'No description available'}>
-                            <Typography variant="body2">{proc.name}</Typography>
-                          </Tooltip>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              cursor: 'pointer',
+                              '&:hover': { textDecoration: 'underline', color: 'primary.main' } 
+                            }}
+                            onClick={() => {
+                              setSelectedProcedure(proc);
+                              setDetailsModalOpen(true);
+                            }}
+                          >
+                            {proc.name}
+                          </Typography>
                         </TableCell>
                         <TableCell>{proc.category}</TableCell>
                         <TableCell align="right">
@@ -564,14 +740,14 @@ const Dashboard: React.FC = () => {
                           {safeRender(proc.yearly_growth_percentage, true)}
                         </TableCell>
                         <TableCell align="right">
-                          {formatMarketSize(proc.market_size_usd_millions)}
+                          {formatMarketSize(typeof proc.market_size_usd_millions === 'string' 
+                            ? parseFloat(proc.market_size_usd_millions) 
+                            : proc.market_size_usd_millions)}
                         </TableCell>
                         {selectedIndustry === 'aesthetic' && (
                           <TableCell>{(proc as any).downtime || '-'}</TableCell>
                         )}
-                        {selectedIndustry === 'dental' && (
-                          <TableCell>{(proc as any).clinical_category || '-'}</TableCell>
-                        )}
+
                       </TableRow>
                     ))}
                     
