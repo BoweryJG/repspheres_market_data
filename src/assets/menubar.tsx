@@ -13,63 +13,85 @@ import Box from '@mui/material/Box';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import InsightsIcon from '@mui/icons-material/Insights';
-import AppsIcon from '@mui/icons-material/Apps';
 import PodcastsIcon from '@mui/icons-material/Podcasts';
 import LanguageIcon from '@mui/icons-material/Language';
 import LoginIcon from '@mui/icons-material/Login';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import DashboardIcon from '@mui/icons-material/Dashboard'; // For Workspace
-import MemoryIcon from '@mui/icons-material/Memory'; // For Sphere OS
-// Explicitly import with type information to resolve module not found error
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import MemoryIcon from '@mui/icons-material/Memory';
 import { useOrbContext } from './OrbContextProvider';
-import ThemeToggle from '../components/ThemeToggle'; // Import ThemeToggle component
-
-// Fallback type definition in case import fails
-type OrbContextType = {
-  gradientColors: {
-    start: string;
-    end: string;
-  };
-};
+import ThemeToggle from './ThemeToggle';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import Stack from '@mui/material/Stack';
+import Divider from '@mui/material/Divider';
 
 const ACCENT_COLOR = '#00ffc6';
-const navLinks = [
-  { label: 'RepSpheres Home', href: 'https://repspheres.com', emphasize: false, icon: <AppsIcon sx={{ mr: 1, fontSize: 24, color: ACCENT_COLOR }} /> },
-  { label: 'Market Insights', href: 'https://insights.repspheres.com/dashboard', emphasize: false, icon: <InsightsIcon sx={{ mr: 1, fontSize: 24, color: ACCENT_COLOR }} />, fire: true },
-  { label: 'Workspace', href: 'https://workspace.repspheres.com/', emphasize: false, icon: <DashboardIcon sx={{ mr: 1, fontSize: 24, color: ACCENT_COLOR }} /> },
-  { label: 'Linguistics', href: 'https://linguistics.repspheres.com/', emphasize: false, icon: <LanguageIcon sx={{ mr: 1, fontSize: 24, color: ACCENT_COLOR }} /> },
-  { label: 'Sphere OS', href: 'https://crm.repspheres.com/', emphasize: false, icon: <MemoryIcon sx={{ mr: 1, fontSize: 24, color: ACCENT_COLOR }} /> },
-  { label: 'Podcast', href: '/podcast.html', emphasize: true, icon: <PodcastsIcon sx={{ mr: 1, fontSize: 24, color: ACCENT_COLOR }} /> },
-];
 
-// Animated fire underline keyframes
-const fireUnderlineAnim = {
-  '@keyframes fireUnderline': {
-    '0%': { backgroundPosition: '0% 50%' },
-    '50%': { backgroundPosition: '100% 50%' },
-    '100%': { backgroundPosition: '0% 50%' },
+// Main navigation links
+const getNavLinks = (currentUrl) => {
+  const links = [
+    { 
+      key: 'workspace',
+      label: 'Workspace', 
+      href: 'https://workspace.repspheres.com/',
+      icon: <DashboardIcon fontSize="small" sx={{ color: ACCENT_COLOR }} />
+    },
+    { 
+      key: 'sphereos',
+      label: 'Sphere OS', 
+      href: 'https://crm.repspheres.com/',
+      icon: <MemoryIcon fontSize="small" sx={{ color: ACCENT_COLOR }} />
+    },
+    { 
+      key: 'podcast',
+      label: 'Podcast', 
+      href: '/podcast.html',
+      icon: <PodcastsIcon fontSize="small" sx={{ color: ACCENT_COLOR }} />
+    },
+  ];
+  
+  // Show Linguistics link only if not on the linguistics page
+  if (!currentUrl.includes('/linguistics')) {
+    links.splice(1, 0, { 
+      key: 'linguistics',
+      label: 'Linguistics', 
+      href: 'https://linguistics.repspheres.com/',
+      icon: <LanguageIcon fontSize="small" sx={{ color: ACCENT_COLOR }} />
+    });
   }
+  
+  return links;
 };
 
+// More menu items
+const moreMenuItems = [
+  { label: 'About RepSpheres', href: 'https://repspheres.com/about' },
+  { label: 'Contact', href: 'https://repspheres.com/contact' },
+  { label: 'Careers', href: 'https://repspheres.com/careers' },
+  { label: 'Legal', href: 'https://repspheres.com/legal' }
+];
 
 export default function NavBar() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const [menuAnchorEl, setMenuAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [menuAnchorEl, setMenuAnchorEl] = React.useState(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Get current URL to determine which page we're on
-  const currentUrl = window.location.href;
+  const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+  // Get navigation links based on current page
+  const navLinks = getNavLinks(currentUrl);
   
   // Get the gradient colors from context
   const { gradientColors } = useOrbContext();
 
-  // Orb SVG for brand - now using the shared gradient colors
+  // Orb SVG for brand logo with gradient colors
   const orb = (
-    <svg width="32" height="32" viewBox="0 0 32 32" style={{ marginRight: 10, filter: 'drop-shadow(0 0 6px #7B42F6AA)' }}>
+    <svg width="100%" height="100%" viewBox="0 0 32 32" style={{ filter: 'drop-shadow(0 0 6px #7B42F6AA)' }}>
       <defs>
         <radialGradient id="orbGrad" cx="50%" cy="50%" r="70%">
           <stop offset="0%" stopColor={gradientColors.start} />
@@ -80,334 +102,440 @@ export default function NavBar() {
       <circle cx="16" cy="16" r="8" fill="#fff" opacity="0.08" />
     </svg>
   );
+  
+  // Handle drawer toggle
+  const toggleDrawer = (open) => (event) => {
+    if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
+      return;
+    }
+    setDrawerOpen(open);
+  };
 
-  const navButtonStyle = {
-    fontWeight: 400,
-    letterSpacing: '0.04em',
-    fontSize: '1.04rem',
-    px: 1.2,
-    py: 0,
+  // Handle more menu
+  const handleMenuOpen = (event) => {
+    setMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+  };
+  
+  // Styles for different button types
+  const buttonBaseStyles = {
+    fontWeight: 500,
+    letterSpacing: '0.03em',
+    whiteSpace: 'nowrap',
+    minWidth: 'auto',
+    textTransform: 'none',
     borderRadius: 0,
-    background: 'none',
-    boxShadow: 'none',
-    transition: 'color 0.2s, border-bottom 0.2s',
-    borderBottom: '2px solid transparent',
+    transition: 'all 0.2s',
+  };
+  
+  const navButtonStyles = {
+    ...buttonBaseStyles,
+    fontSize: { xs: '0.9rem', sm: '0.95rem' },
+    px: { xs: 0.5, sm: 1 },
+    py: 0.5,
+    mx: { xs: 0.5, sm: 1 },
+    color: '#fff',
     '&:hover': {
-      color: '#3a86ff',
-      background: 'none',
-      borderBottom: '2px solid #3a86ff',
-      boxShadow: 'none',
+      background: 'rgba(255,255,255,0.1)',
     },
   };
+  
+  const loginButtonStyles = {
+    ...buttonBaseStyles,
+    fontSize: { xs: '0.85rem', sm: '0.9rem' },
+    fontWeight: 500,
+    px: { xs: 1.2, sm: 1.5 },
+    py: 0.5,
+    border: '1px solid #fff',
+    borderRadius: '16px',
+    color: '#fff',
+    background: 'rgba(255,255,255,0.08)',
+    '&:hover': {
+      background: 'rgba(255,255,255,0.15)',
+      borderColor: '#3a86ff',
+    },
+  };
+  
+  const signupButtonStyles = {
+    ...buttonBaseStyles,
+    fontSize: { xs: '0.85rem', sm: '0.9rem' },
+    fontWeight: 600,
+    px: { xs: 1.2, sm: 1.5 },
+    py: 0.5,
+    ml: { xs: 0.5, sm: 1 },
+    borderRadius: '16px',
+    color: '#fff',
+    background: 'linear-gradient(90deg, #00ffc6 0%, #7B42F6 100%)',
+    '&:hover': {
+      background: 'linear-gradient(90deg, #5B3CFF 0%, #00ffc6 100%)',
+      transform: 'scale(1.03)',
+    },
+  };
+  
+  // Mobile drawer content
+  const drawerContent = (
+    <Box
+      sx={{ 
+        width: '260px', 
+        p: 2, 
+        background: 'rgba(20,14,38,0.96)',
+        borderLeft: '2px solid',
+        borderImage: 'linear-gradient(180deg, #7B42F6 0%, #00ffc6 100%) 1',
+        height: '100%',
+        color: '#fff',
+      }}
+      role="presentation"
+      onClick={toggleDrawer(false)}
+      onKeyDown={toggleDrawer(false)}
+    >
+      {/* RepSpheres Logo in Drawer */}
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        mb: 4, 
+        mt: 2,
+        cursor: 'pointer'
+      }} onClick={() => typeof window !== 'undefined' && (window.location.href = 'https://repspheres.com')}>
+        <Box sx={{ 
+          width: 32, 
+          height: 32, 
+          mr: 1.5 
+        }}>
+          {orb}
+        </Box>
+        <Box sx={{ 
+          fontSize: '1.2rem', 
+          fontWeight: 800,
+          display: 'flex'
+        }}>
+          <span>Rep</span>
+          <Box component="span" sx={{
+            background: 'linear-gradient(90deg, #00ffc6 0%, #7B42F6 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}>Spheres</Box>
+        </Box>
+      </Box>
+
+      {/* Navigation Links */}
+      <List sx={{ mb: 2 }}>
+        {navLinks.map((link) => (
+          <ListItem key={link.key} disablePadding sx={{ mb: 1 }}>
+            <ListItemButton
+              component="a"
+              href={link.href}
+              sx={{
+                py: 1,
+                borderRadius: '8px',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
+              }}
+            >
+              <Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
+                {link.icon}
+              </Box>
+              <ListItemText primary={link.label} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+      
+      <Divider sx={{ bgcolor: 'rgba(255,255,255,0.1)', my: 2 }} />
+      
+      {/* More Menu Items */}
+      <List>
+        {moreMenuItems.map((item, index) => (
+          <ListItem key={index} disablePadding sx={{ mb: 0.5 }}>
+            <ListItemButton
+              component="a"
+              href={item.href}
+              sx={{ 
+                py: 0.75,
+                px: 2,
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+              }}
+            >
+              {item.label}
+            </ListItemButton>
+          </ListItem>
+        ))}
+        
+
+      </List>
+      
+      {/* Auth Buttons */}
+      <Box sx={{ mt: 4, px: 1 }}>
+        <Button 
+          fullWidth 
+          component="a" 
+          href="/login.html"
+          variant="outlined"
+          sx={{
+            ...loginButtonStyles,
+            mb: 2,
+            justifyContent: 'center',
+          }}
+        >
+          Log In
+        </Button>
+        
+        <Button 
+          fullWidth 
+          component="a" 
+          href="/signup.html"
+          variant="contained"
+          sx={{
+            ...signupButtonStyles,
+            ml: 0,
+            justifyContent: 'center',
+          }}
+        >
+          Sign Up
+        </Button>
+      </Box>
+    </Box>
+  );
 
   return (
     <AppBar position="sticky" elevation={0} sx={{
       background: 'rgba(24,24,43,0.52)',
-      WebkitBackdropFilter: 'blur(18px) saturate(130%)',
-      boxShadow: '0 8px 32px 0 rgba(123,66,246,0.17)',
-      border: '1.5px solid rgba(123,66,246,0.13)',
-      transition: 'background 0.24s',
-      backdropFilter: 'blur(22px)',
-      borderBottom: '1.5px solid rgba(123,66,246,0.10)',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      boxShadow: '0 6px 24px 0 rgba(123,66,246,0.15)',
+      border: '1px solid rgba(123,66,246,0.13)',
+      borderBottom: '1px solid rgba(123,66,246,0.10)',
+      borderRadius: { xs: '0 0 16px 16px', md: '0 0 24px 24px' },
+      mx: 'auto',
+      mt: { xs: 0.5, md: 1 },
+      width: { xs: 'calc(100% - 10px)', sm: 'calc(100% - 20px)', md: 'calc(100% - 40px)' },
+      maxWidth: '1800px',
+      overflow: 'hidden', // Ensures nothing extends outside the AppBar
       zIndex: 1200,
-      borderRadius: { xs: '0 0 18px 18px', md: '0 0 32px 32px' },
-      mx: { xs: 1, md: 3 },
-      mt: { xs: 1, md: 2 },
-      width: { xs: 'calc(100% - 8px)', md: 'calc(100% - 48px)' },
-      fontFamily: 'Montserrat, DM Sans, Arial, sans-serif',
-      fontWeight: 700,
-      color: '#fff',
-      marginLeft: 6,
-      letterSpacing: '0.01em',
-      display: 'flex',
-      alignItems: 'center',
+      backgroundColor: 'rgba(24,24,43,0.52)',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      boxShadow: '0 6px 24px 0 rgba(123,66,246,0.15)',
+      border: '1px solid rgba(123,66,246,0.13)',
+      borderBottom: '1px solid rgba(123,66,246,0.10)',
     }}>
-      <Toolbar>
-        <Box sx={{ display: 'flex', alignItems: 'center', fontWeight: 900, fontSize: { xs: '1.35rem', md: '1.10rem' }, letterSpacing: '0.09em', color: '#fff', userSelect: 'none' }}>
-          <span style={{ display: 'flex', alignItems: 'center' }}>
-            {/* Responsive orb logo size */}
-            <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 2 }}>
-              <span style={{ width: 32, height: 32, display: 'inline-block' }}>
-                <span style={{ display: 'none' }}>{/* for SSR safety */}</span>
-                <span style={{ width: 26, height: 26, display: 'none' }}></span>
-                <span style={{ display: 'inline-block', width: '100%', height: '100%' }}>{orb}</span>
-              </span>
-            </span>
-            <span style={{ fontWeight: 800, letterSpacing: '0.09em', marginRight: 2 }}>Rep</span>
-            <span style={{
+      <Toolbar sx={{ 
+        px: { xs: 1, sm: 2 },
+        height: { xs: '60px', sm: '64px' },
+        minHeight: { xs: '60px', sm: '64px' }, // Override default Toolbar minHeight
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        {/* Logo Section */}
+        <Box 
+          component="a" 
+          href="https://repspheres.com" 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center',
+            textDecoration: 'none',
+            color: 'inherit'
+          }}
+        >
+          <Box sx={{ 
+            display: 'flex',
+            alignItems: 'center',
+            mr: 1,
+            width: { xs: 28, sm: 32 },
+            height: { xs: 28, sm: 32 }
+          }}>
+            {orb}
+          </Box>
+          
+          <Box sx={{ 
+            display: 'flex',
+            fontSize: { xs: '1.1rem', sm: '1.2rem' },
+            fontWeight: 800,
+            letterSpacing: '0.03em',
+          }}>
+            <Box component="span">Rep</Box>
+            <Box component="span" sx={{
               background: 'linear-gradient(90deg, #00ffc6 0%, #7B42F6 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              fontWeight: 800,
-              letterSpacing: '0.09em',
-              transition: 'background 0.4s',
-            }}>
-              Spheres
-            </span>
-          </span>
-          {/* Desktop divider and spacing */}
-          {!isMobile && (
-            <>
-              <Box sx={{ width: 24 }} />
-              <Box sx={{ height: 36, display: 'flex', alignItems: 'center', mx: 1 }}>
-                <span style={{
-                  borderLeft: '2px solid rgba(255,255,255,0.13)',
-                  height: 28,
-                  margin: '0 16px',
-                  display: 'inline-block',
-                }} />
-              </Box>
-              <Box sx={{ width: 16 }} />
-            </>
-          )}
+            }}>Spheres</Box>
+          </Box>
         </Box>
-        {isMobile ? (
-          // Mobile: add More menu and RepSpheres Home link
-          <>
-            <IconButton edge="end" color="inherit" onClick={() => setDrawerOpen(true)}>
-              <MenuIcon sx={{ fontSize: 32 }} />
-            </IconButton>
-            <Drawer
-              anchor="right"
-              open={drawerOpen}
-              onClose={() => setDrawerOpen(false)}
-              PaperProps={{
-                sx: {
-                  background: 'rgba(20,14,38,0.96)',
-                  borderLeft: '2.5px solid',
-                  borderImage: 'linear-gradient(180deg, #7B42F6 0%, #00ffc6 100%) 1',
-                  minWidth: 260,
-                  borderTopLeftRadius: 26,
-                  borderBottomLeftRadius: 26,
-                  boxShadow: '0 8px 48px 4px #7B42F633',
-                  p: 1,
-                }
-              }}
-            >
-              <List sx={{ mt: 4 }}>
-                {navLinks
-                  // Filter out Market Insights link if we're already on that page
-                  .filter(link => !(link.label === 'Market Insights' && 
-                    (currentUrl.includes('/dashboard') || currentUrl.includes('insights.repspheres.com'))))
-                  .map((link) => (
-                  <ListItem key={link.label} disablePadding>
-                    <ListItemButton
-                      component="a"
-                      href={link.href}
-                      sx={{
-                        ...navButtonStyle,
-                        opacity: link.emphasize ? 0.6 : 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        fontSize: '1.09rem',
-                        mb: 1,
-                        color: '#fff',
-                      }}
-                    >
-                      {link.icon}{link.label}
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-                {/* More Menu in Drawer */}
-                <ListItem disablePadding>
-                  <MenuItem component="a" href="https://repspheres.com/about" sx={{ color: '#fff' }}>About RepSpheres</MenuItem>
-                </ListItem>
-                <ListItem disablePadding>
-                  <MenuItem component="a" href="https://repspheres.com/contact" sx={{ color: '#fff' }}>Contact</MenuItem>
-                </ListItem>
-                <ListItem disablePadding>
-                  <MenuItem component="a" href="https://repspheres.com/careers" sx={{ color: '#fff' }}>Careers</MenuItem>
-                </ListItem>
-                <ListItem disablePadding>
-                  <MenuItem component="a" href="https://repspheres.com/legal" sx={{ color: '#fff' }}>Legal</MenuItem>
-                </ListItem>
-                {/* Theme Toggle in Mobile Menu */}
-                <ListItem disablePadding>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', px: 2, py: 1 }}>
-                    <span style={{ color: '#fff' }}>Toggle Theme</span>
-                    <ThemeToggle />
-                  </Box>
-                </ListItem>
-                <Box sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', my: 1, mx: 2 }} />
-                {/* End More Menu */}
-                <ListItem disablePadding>
-                  <ListItemButton component="a" href="/login.html" sx={{
-                    ...navButtonStyle,
-                    border: '1.5px solid #fff',
-                    color: '#fff',
-                    mt: 2,
-                    mb: 1,
-                  }}>
-                    <ListItemText primary="Log In" />
-                  </ListItemButton>
-                </ListItem>
-                <ListItem disablePadding>
-                  <ListItemButton component="a" href="/signup.html" sx={{
-                    ...navButtonStyle,
-                    mt: 2,
-                    background: 'linear-gradient(135deg, #7B42F6 0%, #00ffc6 100%)',
-                    color: '#fff',
-                    boxShadow: '0 4px 20px rgba(123,66,246,0.20)',
-                    fontWeight: 800,
-                    fontSize: '1.15rem',
-                    borderRadius: '32px',
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #5B3CFF 0%, #00ffc6 100%)',
-                      color: '#fff',
-                      transform: 'scale(1.04)'
-                    }
-                  }}>
-                    <ListItemText primary="Sign Up" />
-                  </ListItemButton>
-                </ListItem>
-              </List>
-            </Drawer>
-          </>
-        ) : (
+
+        {/* Middle Section - Navigation (only on desktop) */}
+        {!isMobile && (
           <Box sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: 1.5,
             justifyContent: 'center',
-            width: '100%',
+            mx: 'auto',
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
           }}>
-            {navLinks
-              // Filter out Market Insights link if we're already on that page
-              .filter(link => !(link.label === 'Market Insights' && 
-                (currentUrl.includes('/dashboard') || currentUrl.includes('insights.repspheres.com'))))
-              .map((link) => (
-              <Box key={link.label} sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              height: '100%',
+              px: { sm: 1, md: 2 },
+              maxWidth: { sm: '65vw', md: '70vw' },
+              overflowX: 'auto',
+              '&::-webkit-scrollbar': { display: 'none' },
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none',
+            }}>
+              {navLinks.map((link) => (
                 <Button
+                  key={link.key}
+                  component="a"
                   href={link.href}
                   sx={{
-                    ...navButtonStyle,
-                    opacity: link.emphasize ? 0.7 : 1,
-                    color: '#fff',
-                    fontWeight: 400,
-                    fontSize: '1.04rem',
-                    letterSpacing: '0.04em',
-                    display: 'flex',
-                    alignItems: 'center',
-                    minWidth: 0,
-                    px: 1.8,
-                    mx: 0.5,
-                    background: 'none',
-                    boxShadow: 'none',
-                    position: 'relative',
-                    zIndex: 2,
-                    ...(link.fire ? fireUnderlineAnim : {}),
+                    ...navButtonStyles,
+                    // Hide text on smaller screens
+                    '& .buttonText': {
+                      display: { xs: 'none', sm: 'inline' }
+                    }
                   }}
-                  disableRipple
                 >
-                  {link.icon}{link.label}
-                  <Box
-                    className="nav-underline"
-                    sx={{
-                      position: 'absolute',
-                      left: '10%',
-                      bottom: 6,
-                      height: 3,
-                      width: 0,
-                      borderRadius: 2,
-                      opacity: 0,
-                      background: 'linear-gradient(90deg, #7B42F6 0%, #00ffc6 100%)',
-                      transition: 'width 0.32s cubic-bezier(.8,.2,.2,1), opacity 0.22s',
-                      zIndex: 1,
-                    }}
-                  />
-                </Button>
-              </Box>
-            ))}
-            {/* More dropdown menu for desktop */}
-            <React.Fragment>
-              <IconButton
-                aria-label="more"
-                aria-controls="long-menu"
-                aria-haspopup="true"
-                onClick={event => setMenuAnchorEl(event.currentTarget)}
-                sx={{ color: '#fff', ml: 1 }}
-              >
-                <MoreVertIcon />
-              </IconButton>
-              <Menu
-                id="long-menu"
-                anchorEl={menuAnchorEl}
-                open={Boolean(menuAnchorEl)}
-                onClose={() => setMenuAnchorEl(null)}
-                PaperProps={{
-                  style: {
-                    background: 'rgba(30, 20, 60, 0.96)',
-                    color: '#fff',
-                    borderRadius: 12,
-                  },
-                }}
-              >
-                {/* Theme Toggle in Menu */}
-                <MenuItem onClick={() => setMenuAnchorEl(null)} sx={{ color: '#fff' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                    <span>Toggle Theme</span>
-                    <ThemeToggle />
+                  <Box sx={{ 
+                    mr: { xs: 0, sm: 1 },
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    {link.icon}
                   </Box>
-                </MenuItem>
-                <Box sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', my: 1 }} />
-                <MenuItem component="a" href="https://repspheres.com/about" onClick={() => setMenuAnchorEl(null)} sx={{ color: '#fff' }}>About RepSpheres</MenuItem>
-                <MenuItem component="a" href="https://repspheres.com/contact" onClick={() => setMenuAnchorEl(null)} sx={{ color: '#fff' }}>Contact</MenuItem>
-                <MenuItem component="a" href="https://repspheres.com/careers" onClick={() => setMenuAnchorEl(null)} sx={{ color: '#fff' }}>Careers</MenuItem>
-                <MenuItem component="a" href="https://repspheres.com/legal" onClick={() => setMenuAnchorEl(null)} sx={{ color: '#fff' }}>Legal</MenuItem>
-              </Menu>
-            </React.Fragment>
+                  <Box component="span" className="buttonText">{link.label}</Box>
+                </Button>
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {/* Right Section - Auth Buttons & Menu Button */}
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          ml: 'auto',
+          gap: { xs: 0.5, sm: 1 },
+        }}>
+          {/* Theme Toggle - Subtle but visible */}
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            mr: 1,
+            opacity: 0.8,
+          }}>
+            <ThemeToggle />
+          </Box>
+          
+          {/* Auth Buttons - Always visible except on very small screens */}
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+          }}>
             <Button
+              component="a"
               href="/login.html"
               variant="outlined"
-              startIcon={<LoginIcon sx={{ fontSize: 18 }} />}
-              sx={{
-                ...navButtonStyle,
-                border: '1.5px solid #fff',
-                color: '#fff',
-                ml: 2,
-                fontWeight: 500,
-                background: 'rgba(255,255,255,0.08)',
-                backdropFilter: 'blur(6px)',
-                borderRadius: '18px',
-                px: 2.2,
-                fontSize: '1.04rem',
-                letterSpacing: '0.04em',
-                boxShadow: '0 1px 6px rgba(58,134,255,0.10)',
-                transition: 'all 0.18s',
-                '&:hover': {
-                  background: 'rgba(58,134,255,0.18)',
-                  color: '#3a86ff',
-                  borderColor: '#3a86ff',
-                }
-              }}
+              sx={loginButtonStyles}
             >
               Log In
             </Button>
+            
             <Button
+              component="a"
               href="/signup.html"
               variant="contained"
-              endIcon={<ArrowForwardIcon sx={{ fontSize: 20 }} />}
-              sx={{
-                ...navButtonStyle,
-                background: 'linear-gradient(90deg, #00ffc6 0%, #7B42F6 100%)',
-                color: '#fff',
-                fontWeight: 700,
-                ml: 2,
-                px: 2.8,
-                borderRadius: '24px',
-                fontSize: '1.09rem',
-                letterSpacing: '0.04em',
-                boxShadow: '0 2px 18px 0 rgba(123,66,246,0.13)',
-                transition: 'all 0.22s',
-                '&:hover': {
-                  background: 'linear-gradient(90deg, #5B3CFF 0%, #00ffc6 100%)',
-                }
-              }}
+              sx={signupButtonStyles}
             >
               Sign Up
             </Button>
           </Box>
-        )}
+
+          {/* Mobile Menu Button */}
+          {isMobile && (
+            <IconButton 
+              edge="end" 
+              color="inherit" 
+              aria-label="menu"
+              onClick={toggleDrawer(true)}
+              sx={{ ml: 1 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
+
+          {/* More Menu - Only on desktop */}
+          {!isMobile && (
+            <IconButton
+              aria-label="more options"
+              aria-controls="menu-appbar"
+              aria-haspopup="true"
+              onClick={handleMenuOpen}
+              sx={{ 
+                ml: 0.5, 
+                color: '#fff',
+                display: { xs: 'none', md: 'flex' }
+              }}
+            >
+              <MoreVertIcon />
+            </IconButton>
+          )}
+
+          {/* More Menu Dropdown */}
+          <Menu
+            id="menu-appbar"
+            anchorEl={menuAnchorEl}
+            keepMounted
+            open={Boolean(menuAnchorEl)}
+            onClose={handleMenuClose}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            PaperProps={{
+              sx: {
+                mt: 1.5,
+                background: 'rgba(20,14,38,0.96)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                borderRadius: 2,
+                border: '1px solid rgba(123,66,246,0.15)',
+                minWidth: 180,
+              }
+            }}
+          >
+            <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', my: 1 }} />
+
+            {/* More Menu Items */}
+            {moreMenuItems.map((item, index) => (
+              <MenuItem 
+                key={index} 
+                component="a"
+                href={item.href}
+                onClick={handleMenuClose}
+                sx={{ color: '#fff' }}
+              >
+                {item.label}
+              </MenuItem>
+            ))}
+          </Menu>
+        </Box>
+
+        {/* Mobile Drawer */}
+        <Drawer
+          anchor="right"
+          open={drawerOpen}
+          onClose={toggleDrawer(false)}
+        >
+          {drawerContent}
+        </Drawer>
       </Toolbar>
     </AppBar>
   );
