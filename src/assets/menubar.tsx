@@ -19,8 +19,9 @@ import LoginIcon from '@mui/icons-material/Login';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import MemoryIcon from '@mui/icons-material/Memory';
-import { useOrbContext } from './OrbContextProvider';
-import ThemeToggle from './ThemeToggle';
+import { useOrbContext, useColorMode } from './OrbContextProvider';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -30,7 +31,7 @@ import Divider from '@mui/material/Divider';
 const ACCENT_COLOR = '#00ffc6';
 
 // Main navigation links
-const getNavLinks = (currentUrl) => {
+const getNavLinks = (currentUrl: string) => {
   const links = [
     { 
       key: 'workspace',
@@ -73,9 +74,33 @@ const moreMenuItems = [
   { label: 'Legal', href: 'https://repspheres.com/legal' }
 ];
 
+// Inline ThemeToggle component to avoid import issues
+const ThemeToggle = () => {
+  const theme = useTheme();
+  const { colorMode, toggleColorMode } = useColorMode();
+  
+  return (
+    <IconButton 
+      onClick={toggleColorMode} 
+      color="inherit"
+      aria-label="toggle dark/light mode"
+      sx={{ 
+        opacity: 0.8,
+        '&:hover': { opacity: 1 }
+      }}
+    >
+      {theme.palette.mode === 'dark' ? (
+        <Brightness7Icon fontSize="small" />
+      ) : (
+        <Brightness4Icon fontSize="small" />
+      )}
+    </IconButton>
+  );
+};
+
 export default function NavBar() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const [menuAnchorEl, setMenuAnchorEl] = React.useState(null);
+  const [menuAnchorEl, setMenuAnchorEl] = React.useState<HTMLElement | null>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
@@ -104,15 +129,15 @@ export default function NavBar() {
   );
   
   // Handle drawer toggle
-  const toggleDrawer = (open) => (event) => {
-    if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
+  const toggleDrawer = (open: boolean) => (event: React.KeyboardEvent<Element> | React.MouseEvent) => {
+    if (event.type === 'keydown' && ((event as React.KeyboardEvent).key === 'Tab' || (event as React.KeyboardEvent).key === 'Shift')) {
       return;
     }
     setDrawerOpen(open);
   };
 
   // Handle more menu
-  const handleMenuOpen = (event) => {
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setMenuAnchorEl(event.currentTarget);
   };
 
@@ -314,12 +339,6 @@ export default function NavBar() {
       maxWidth: '1800px',
       overflow: 'hidden', // Ensures nothing extends outside the AppBar
       zIndex: 1200,
-      backgroundColor: 'rgba(24,24,43,0.52)',
-      backdropFilter: 'blur(10px)',
-      WebkitBackdropFilter: 'blur(10px)',
-      boxShadow: '0 6px 24px 0 rgba(123,66,246,0.15)',
-      border: '1px solid rgba(123,66,246,0.13)',
-      borderBottom: '1px solid rgba(123,66,246,0.10)',
     }}>
       <Toolbar sx={{ 
         px: { xs: 1, sm: 2 },
