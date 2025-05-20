@@ -3,14 +3,20 @@ import Dashboard from './components/Dashboard/DashboardFixed';
 import { OrbContextProvider } from './assets/OrbContextProvider';
 import NavBar from './assets/menubar';
 import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider } from './context/AuthContext';
+import AuthGate from './components/AuthGate';
 
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <OrbContextProvider>
-        <NavBar />
-        <Dashboard />
-      </OrbContextProvider>
+      <AuthProvider>
+        <OrbContextProvider>
+          <NavBar />
+          <AuthGate>
+            <Dashboard />
+          </AuthGate>
+        </OrbContextProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 };
