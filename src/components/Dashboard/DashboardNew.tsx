@@ -24,6 +24,7 @@ import {
   LinearProgress,
   Tooltip
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { supabase } from '../../services/supabaseClient';
 import { DentalCategory, AestheticCategory } from '../../types';
 
@@ -109,6 +110,13 @@ const Dashboard: React.FC = () => {
   const [aestheticProcedures, setAestheticProcedures] = useState<AestheticProcedure[]>([]);
   const [dentalCompanies, setDentalCompanies] = useState<Company[]>([]);
   const [aestheticCompanies, setAestheticCompanies] = useState<Company[]>([]);
+
+  const theme = useTheme();
+  const orbGradient = (theme as any).customGradients?.orb || { start: '#00ffc6', end: '#7B42F6' };
+  const gradientBorder = {
+    borderTop: '3px solid',
+    borderImage: `linear-gradient(90deg, ${orbGradient.start}, ${orbGradient.end}) 1`
+  };
   
   // State for categories
   const [dentalCategories, setDentalCategories] = useState<DentalCategory[]>([]);
@@ -571,7 +579,7 @@ const Dashboard: React.FC = () => {
 
       {/* Industry Toggle Switch */}
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
-        <Card elevation={3} sx={{ px: 4, py: 2, borderRadius: 2 }}>
+        <Card elevation={3} sx={{ px: 4, py: 2, borderRadius: 2, ...gradientBorder }}>
           <Grid container alignItems="center" spacing={2}>
             <Grid item>
               <Typography 
@@ -610,7 +618,7 @@ const Dashboard: React.FC = () => {
       {selectedCategory && (
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12}>
-            <Card elevation={3} sx={{ bgcolor: selectedIndustry === 'dental' ? '#e3f2fd' : '#fce4ec' }}>
+            <Card elevation={3} sx={{ bgcolor: selectedIndustry === 'dental' ? '#e3f2fd' : '#fce4ec', ...gradientBorder }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   {selectedIndustry === 'dental' 
@@ -619,7 +627,7 @@ const Dashboard: React.FC = () => {
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={4}>
-                    <Card variant="outlined" sx={{ height: '100%' }}>
+                    <Card variant="outlined" sx={{ height: '100%', ...gradientBorder }}>
                       <CardContent>
                         <Typography variant="subtitle2" color="text.secondary">Market Size</Typography>
                         <Typography variant="h5">
@@ -631,7 +639,7 @@ const Dashboard: React.FC = () => {
                     </Card>
                   </Grid>
                   <Grid item xs={12} md={4}>
-                    <Card variant="outlined" sx={{ height: '100%' }}>
+                    <Card variant="outlined" sx={{ height: '100%', ...gradientBorder }}>
                       <CardContent>
                         <Typography variant="subtitle2" color="text.secondary">Growth Rate</Typography>
                         <Typography variant="h5">
@@ -643,7 +651,7 @@ const Dashboard: React.FC = () => {
                     </Card>
                   </Grid>
                   <Grid item xs={12} md={4}>
-                    <Card variant="outlined" sx={{ height: '100%' }}>
+                    <Card variant="outlined" sx={{ height: '100%', ...gradientBorder }}>
                       <CardContent>
                         <Typography variant="subtitle2" color="text.secondary">Procedure Count</Typography>
                         <Typography variant="h5">
@@ -664,7 +672,7 @@ const Dashboard: React.FC = () => {
       {/* Category Distribution Visualization */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
-          <Card elevation={3}>
+          <Card elevation={3} sx={gradientBorder}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 {selectedIndustry === 'dental' ? 'Dental Category Distribution' : 'Aesthetic Category Distribution'}
@@ -823,7 +831,7 @@ const Dashboard: React.FC = () => {
       {/* Categories Section */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
-          <Card elevation={3}>
+          <Card elevation={3} sx={gradientBorder}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 {selectedIndustry === 'dental' ? 'Dental Procedure Categories' : 'Aesthetic Procedure Categories'}
@@ -885,7 +893,7 @@ const Dashboard: React.FC = () => {
       {/* Procedures Section */}
       <Grid container spacing={3} sx={{ mb: 4 }} id="procedures-section">
         <Grid item xs={12}>
-          <Card elevation={3}>
+          <Card elevation={3} sx={gradientBorder}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 {selectedIndustry === 'dental' ? 'Dental Procedures' : 'Aesthetic Procedures'}
@@ -990,7 +998,7 @@ const Dashboard: React.FC = () => {
       {/* Companies Section */}
       <Grid container spacing={3}>
         <Grid item xs={12}>
-          <Card elevation={3}>
+          <Card elevation={3} sx={gradientBorder}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 {selectedIndustry === 'dental' ? 'Dental Companies' : 'Aesthetic Companies'}

@@ -24,6 +24,7 @@ import {
   Tooltip,
   Badge
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import { visuallyHidden } from '@mui/utils';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
@@ -40,6 +41,13 @@ const Dashboard: React.FC = () => {
   const [aestheticProcedures, setAestheticProcedures] = useState<any[]>([]);
   const [dentalCompanies, setDentalCompanies] = useState<any[]>([]);
   const [aestheticCompanies, setAestheticCompanies] = useState<any[]>([]);
+
+  const theme = useTheme();
+  const orbGradient = (theme as any).customGradients?.orb || { start: '#00ffc6', end: '#7B42F6' };
+  const gradientBorder = {
+    borderTop: '3px solid',
+    borderImage: `linear-gradient(90deg, ${orbGradient.start}, ${orbGradient.end}) 1`
+  };
   
   // State for categories - both legacy and new hierarchical system
   const [dentalCategories, setDentalCategories] = useState<DentalCategory[]>([]);
@@ -597,7 +605,7 @@ const Dashboard: React.FC = () => {
         {/* Main content area */}
         <Grid item xs={12} md={9}>
           {/* Procedures section */}
-          <Card variant="outlined" sx={{ mb: 3 }}>
+          <Card variant="outlined" sx={{ mb: 3, ...gradientBorder }}>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" color="primary" gutterBottom>
@@ -784,7 +792,7 @@ const Dashboard: React.FC = () => {
           </Card>
           
           {/* Companies section */}
-          <Card variant="outlined">
+          <Card variant="outlined" sx={gradientBorder}>
             <CardContent>
               <Typography variant="h6" color="primary" gutterBottom>
                 {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Companies

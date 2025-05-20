@@ -9,6 +9,7 @@ import {
   CircularProgress,
   Alert
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import CategoryNewsSection from './CategoryNewsSection';
 import { useTopProcedureCategoriesWithNews, ProcedureCategory } from '../../services/newsService';
 
@@ -90,6 +91,12 @@ const mockAestheticCategories: ProcedureCategory[] = [
 
 const NewsDashboard: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
+  const theme = useTheme();
+  const orbGradient = (theme as any).customGradients?.orb || { start: '#00ffc6', end: '#7B42F6' };
+  const gradientBorder = {
+    borderTop: '3px solid',
+    borderImage: `linear-gradient(90deg, ${orbGradient.start}, ${orbGradient.end}) 1`
+  };
   
   // Fetch dental categories using the custom hook
   const { 
@@ -134,7 +141,7 @@ const NewsDashboard: React.FC = () => {
   }
 
   return (
-    <Paper sx={{ mb: 4, borderRadius: 2, overflow: 'hidden' }}>
+    <Paper sx={{ mb: 4, borderRadius: 2, overflow: 'hidden', ...gradientBorder }}>
       <Box sx={{ p: 3, pb: 0 }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
           Industry News

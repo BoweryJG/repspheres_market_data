@@ -12,8 +12,9 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 // Common theme settings
+export const ORB_GRADIENT = { start: '#00ffc6', end: '#7B42F6' } as const;
 const getTheme = (mode: ThemeMode): Theme => {
-  const ACCENT_COLOR = '#00ffc6';
+  const ACCENT_COLOR = ORB_GRADIENT.start;
   
   return createTheme({
     palette: {
@@ -32,6 +33,10 @@ const getTheme = (mode: ThemeMode): Theme => {
         primary: mode === 'light' ? 'rgba(0, 0, 0, 0.87)' : 'rgba(255, 255, 255, 0.87)',
         secondary: mode === 'light' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.6)',
       },
+    },
+    // Custom property for shared gradients
+    customGradients: {
+      orb: ORB_GRADIENT
     },
     typography: {
       fontFamily: [
@@ -90,7 +95,7 @@ const getTheme = (mode: ThemeMode): Theme => {
         },
       },
     },
-  });
+  } as any);
 };
 
 interface ThemeProviderProps {

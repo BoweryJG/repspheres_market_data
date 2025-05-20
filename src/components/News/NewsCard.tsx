@@ -9,6 +9,7 @@ import {
   Link,
   CardActionArea
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { format, parseISO } from 'date-fns';
 
 interface NewsCardProps {
@@ -33,6 +34,12 @@ const NewsCard: React.FC<NewsCardProps> = ({
   industry,
   author
 }) => {
+  const theme = useTheme();
+  const orbGradient = (theme as any).customGradients?.orb || { start: '#00ffc6', end: '#7B42F6' };
+  const gradientBorder = {
+    borderTop: '3px solid',
+    borderImage: `linear-gradient(90deg, ${orbGradient.start}, ${orbGradient.end}) 1`
+  };
   // Format the date
   const formattedDate = published_date ? 
     (typeof published_date === 'string' ? 
@@ -64,7 +71,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
   };
 
   return (
-    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', ...gradientBorder }}>
       <CardActionArea 
         component="a" 
         href={isValidUrl(url) ? url : '#'} 

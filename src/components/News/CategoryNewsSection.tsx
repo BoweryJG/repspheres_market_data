@@ -94,13 +94,18 @@ const mockAestheticNews: NewsArticle[] = [
   }
 ];
 
-const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({ 
-  categoryId, 
-  categoryName, 
+const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
+  categoryId,
+  categoryName,
   industry,
   limit = 3
 }) => {
   const theme = useTheme();
+  const orbGradient = (theme as any).customGradients?.orb || { start: '#00ffc6', end: '#7B42F6' };
+  const gradientBorder = {
+    borderBottom: '2px solid',
+    borderImage: `linear-gradient(90deg, ${orbGradient.start}, ${orbGradient.end}) 1`
+  };
   
   // Use the custom hook to fetch news by procedure category
   const { 
@@ -122,13 +127,11 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
 
   return (
     <Box sx={{ mb: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, pb: 1, ...gradientBorder }}>
         <Typography variant="h6" component="h3">
           {categoryName}
         </Typography>
       </Box>
-      
-      <Divider sx={{ mb: 2 }} />
       
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
@@ -160,10 +163,15 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
           )}
           {displayArticles.length > 0 && (
             <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <Button 
-                variant="outlined" 
-                color="primary" 
-                sx={{ borderRadius: theme.shape.borderRadius, mt: 2 }}
+              <Button
+                variant="contained"
+                sx={{
+                  borderRadius: theme.shape.borderRadius,
+                  mt: 2,
+                  background: `linear-gradient(90deg, ${orbGradient.start}, ${orbGradient.end})`,
+                  color: '#fff',
+                  '&:hover': { background: `linear-gradient(90deg, ${orbGradient.end}, ${orbGradient.start})` }
+                }}
                 onClick={() => console.log('View More button clicked')}
               >
                 View More {categoryName} News

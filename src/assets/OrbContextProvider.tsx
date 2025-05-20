@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useMemo } from 'react';
+import { useTheme } from '@mui/material/styles';
+import { ORB_GRADIENT } from '../context/ThemeContext';
 
 // Define the type for the orb context
 interface OrbContextType {
@@ -16,7 +18,7 @@ interface ColorModeContextType {
 
 // Create the Orb context
 const OrbContext = createContext<OrbContextType>({
-  gradientColors: { start: '#00ffc6', end: '#7B42F6' }
+  gradientColors: ORB_GRADIENT
 });
 
 // Create the color mode context
@@ -28,6 +30,7 @@ const ColorModeContext = createContext<ColorModeContextType>({
 export const OrbContextProvider = ({ children }: { children: React.ReactNode }) => {
   // State for color mode
   const [mode, setMode] = useState<'light' | 'dark'>('dark');
+  const theme = useTheme();
   
   // Color mode toggle function
   const colorMode = useMemo(
@@ -40,9 +43,9 @@ export const OrbContextProvider = ({ children }: { children: React.ReactNode }) 
     [mode],
   );
 
-  // Orb context values
+  // Orb context values pulled from the theme
   const orbValues = {
-    gradientColors: { start: '#00ffc6', end: '#7B42F6' }
+    gradientColors: (theme as any).customGradients?.orb || ORB_GRADIENT
   };
 
   return (
