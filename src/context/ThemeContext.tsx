@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { ThemeProvider as MuiThemeProvider, createTheme, Theme } from '@mui/material/styles';
+import { ThemeProvider as MuiThemeProvider, createTheme, Theme, responsiveFontSizes } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
 type ThemeMode = 'light' | 'dark';
@@ -15,11 +15,11 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 const getTheme = (mode: ThemeMode): Theme => {
   const ACCENT_COLOR = '#00ffc6';
   
-  return createTheme({
+  let theme = createTheme({
     palette: {
       mode,
       primary: {
-        main: mode === 'light' ? '#1976d2' : '#90caf9',
+        main: mode === 'light' ? '#1565c0' : '#90caf9',
       },
       secondary: {
         main: mode === 'light' ? '#dc004e' : '#f48fb1',
@@ -91,6 +91,8 @@ const getTheme = (mode: ThemeMode): Theme => {
       },
     },
   });
+  theme = responsiveFontSizes(theme);
+  return theme;
 };
 
 interface ThemeProviderProps {

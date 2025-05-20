@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Typography, Box, Grid, CircularProgress } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { FeaturedProcedures } from '../components/procedures/FeaturedProcedures';
 import { CategoriesList } from '../components/procedures/CategoriesList';
 import { Category, Procedure } from '../types';
@@ -9,6 +11,8 @@ const HomePage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProcedures, setFeaturedProcedures] = useState<Procedure[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,23 +58,23 @@ const HomePage: React.FC = () => {
   return (
     <Container maxWidth="lg">
       <Box my={4}>
-        <Typography variant="h3" component="h1" gutterBottom>
+        <Typography variant={isMobile ? 'h4' : 'h3'} component="h1" gutterBottom>
           Market Insights
         </Typography>
-        <Typography variant="h5" color="textSecondary" paragraph>
+        <Typography variant={isMobile ? 'body1' : 'h5'} color="textSecondary" paragraph>
           Explore market trends, procedures, and industry data
         </Typography>
       </Box>
 
       <Box my={6}>
-        <Typography variant="h4" component="h2" gutterBottom>
+        <Typography variant={isMobile ? 'h5' : 'h4'} component="h2" gutterBottom>
           Featured Procedures
         </Typography>
         <FeaturedProcedures procedures={featuredProcedures} />
       </Box>
 
       <Box my={6}>
-        <Typography variant="h4" component="h2" gutterBottom>
+        <Typography variant={isMobile ? 'h5' : 'h4'} component="h2" gutterBottom>
           Browse by Category
         </Typography>
         <CategoriesList categories={categories} />
