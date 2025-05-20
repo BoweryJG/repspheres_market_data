@@ -14,8 +14,9 @@ import {
   Badge,
   Tooltip,
   IconButton,
-  LinearProgress
+  Skeleton
 } from '@mui/material';
+import { keyframes } from '@emotion/react';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -71,6 +72,11 @@ const CategoryHierarchyView: React.FC<CategoryHierarchyViewProps> = ({
   loading
 }) => {
   const [expandedCategories, setExpandedCategories] = useState<Record<number, boolean>>({});
+
+  const fadeIn = keyframes`
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+  `;
 
   // Filter top-level categories for current industry
   const topLevelCategories = categories.filter(
@@ -138,14 +144,22 @@ const CategoryHierarchyView: React.FC<CategoryHierarchyViewProps> = ({
     
     return (
       <React.Fragment key={category.id}>
-        <ListItem 
+        <ListItem
           button
           selected={isSelected}
           onClick={() => onSelectCategory(category.id)}
-          sx={{ 
+          sx={{
             pl: 2 + level * 2,
             borderLeft: isSelected ? `4px solid ${category.color_code || '#1976d2'}` : 'none',
             bgcolor: isSelected ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
+            opacity: 0,
+            transform: 'translateY(4px)',
+            animation: `${fadeIn} 0.3s ease forwards`,
+            '@media (prefers-reduced-motion: reduce)': {
+              animation: 'none',
+              opacity: 1,
+              transform: 'none'
+            },
             '&:hover': {
               bgcolor: 'rgba(25, 118, 210, 0.04)',
             }
@@ -246,10 +260,15 @@ const CategoryHierarchyView: React.FC<CategoryHierarchyViewProps> = ({
         
         {loading ? (
           <Box sx={{ px: 2, py: 1 }}>
-            <LinearProgress />
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Loading categories...
-            </Typography>
+            {[...Array(5)].map((_, i) => (
+              <Skeleton
+                key={i}
+                variant="rectangular"
+                height={40}
+                animation="wave"
+                sx={{ mb: 1, borderRadius: 1 }}
+              />
+            ))}
           </Box>
         ) : (
           <List dense component="nav" sx={{ maxHeight: 500, overflow: 'auto' }}>
