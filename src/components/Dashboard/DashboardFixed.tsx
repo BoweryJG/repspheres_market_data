@@ -22,12 +22,18 @@ import {
   Chip,
   LinearProgress,
   Tooltip,
-  Badge
+  Badge,
+  useMediaQuery,
+  useTheme,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import { visuallyHidden } from '@mui/utils';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import PublicIcon from '@mui/icons-material/Public';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { supabase } from '../../services/supabaseClient';
 import { DentalCategory, AestheticCategory, CategoryHierarchy } from '../../types';
 import CategoryHierarchyView from './CategoryHierarchyView';
@@ -57,6 +63,9 @@ const Dashboard: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [selectedProcedure, setSelectedProcedure] = useState<any | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState<boolean>(false);
+
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Sorting state
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
@@ -350,6 +359,72 @@ const Dashboard: React.FC = () => {
     return String(value);
   };
 
+  interface ProcedureCardProps {
+    procedure: any;
+    industry: 'dental' | 'aesthetic';
+  }
+
+  const ProcedureCard: React.FC<ProcedureCardProps> = ({ procedure, industry }) => (
+    <Card variant="outlined" sx={{ mb: 2 }}>
+      <CardContent>
+        <Typography variant="subtitle1" fontWeight="bold">
+          {procedure.name}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Category: {procedure.category}
+        </Typography>
+        <Typography variant="body2">
+          Avg. Cost: {typeof procedure.average_cost_usd === 'number'
+            ? `$${procedure.average_cost_usd.toLocaleString()}`
+            : safeRender(procedure.average_cost_usd)}
+        </Typography>
+        <Typography variant="body2">
+          Growth: {safeRender(procedure.yearly_growth_percentage, true)}
+        </Typography>
+        <Typography variant="body2">
+          Market Size: {formatMarketSize(
+            typeof procedure.market_size_usd_millions === 'string'
+              ? parseFloat(procedure.market_size_usd_millions)
+              : procedure.market_size_usd_millions
+          )}
+        </Typography>
+        {industry === 'aesthetic' && (
+          <Typography variant="body2">
+            Downtime: {procedure.downtime || '-'}
+          </Typography>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  interface CompanyCardProps {
+    company: any;
+  }
+
+  const CompanyCard: React.FC<CompanyCardProps> = ({ company }) => (
+    <Card variant="outlined" sx={{ mb: 2 }}>
+      <CardContent>
+        <Typography variant="subtitle1" fontWeight="bold">
+          {company.name}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {company.headquarters || '-'}
+        </Typography>
+        <Typography variant="body2">
+          Market Share: {safeRender(company.market_share_pct, true)}
+        </Typography>
+        <Typography variant="body2">
+          Sales: {company.last_year_sales_usd_million
+            ? `$${company.last_year_sales_usd_million.toLocaleString()}`
+            : '-'}
+        </Typography>
+        <Typography variant="body2">
+          Growth: {safeRender(company.projected_growth_pct, true)}
+        </Typography>
+      </CardContent>
+    </Card>
+  );
+
   // Calculate category distributions for visualization
   const calculateCategoryDistribution = (procedures: any[], categories: any[]) => {
     // Create a map to count procedures by category
@@ -581,7 +656,7 @@ const Dashboard: React.FC = () => {
       />
       
       {/* Main content grid */}
-      <Grid container spacing={3}>
+      <Grid container spacing={3} direction={{ xs: 'column', md: 'row' }}>
         {/* Left sidebar with categories hierarchy */}
         <Grid item xs={12} md={3}>
           <CategoryHierarchyView
@@ -618,10 +693,32 @@ const Dashboard: React.FC = () => {
                 )}
               </Box>
               
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
+              {isSmallScreen ? (
+                <Box>
+                  {(selectedIndustry === 'dental'
+                    ? currentDentalProcedures
+                    : currentAestheticProcedures).map((proc) => (
+                    <ProcedureCard
+                      key={proc.id}
+                      procedure={proc}
+                      industry={selectedIndustry}
+                    />
+                  ))}
+
+                  {(selectedIndustry === 'dental'
+                    ? !currentDentalProcedures.length
+                    : !currentAestheticProcedures.length) && (
+                    <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
+                      No procedures found
+                      {selectedCategory ? ' for the selected category' : ''}
+                    </Typography>
+                  )}
+                </Box>
+              ) : (
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
                       <TableCell>
                         <TableSortLabel
                           active={orderBy === 'name'}
@@ -764,6 +861,7 @@ const Dashboard: React.FC = () => {
                   </TableBody>
                 </Table>
               </TableContainer>
+              )}
               
               <TablePagination
                 rowsPerPageOptions={[5, 10, 25, 50]}
@@ -790,51 +888,68 @@ const Dashboard: React.FC = () => {
                 {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Companies
               </Typography>
               
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Company Name</TableCell>
-                      <TableCell>Headquarters</TableCell>
-                      <TableCell align="right">Market Share %</TableCell>
-                      <TableCell align="right">Sales ($M)</TableCell>
-                      <TableCell align="right">Growth %</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(selectedIndustry === 'dental' ? currentDentalCompanies : currentAestheticCompanies).map((company) => (
-                      <TableRow key={company.id}>
-                        <TableCell>
-                          <Tooltip title={company.description || 'No description available'}>
-                            <Typography variant="body2">{company.name}</Typography>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell>{company.headquarters || '-'}</TableCell>
-                        <TableCell align="right">{safeRender(company.market_share_pct, true)}</TableCell>
-                        <TableCell align="right">
-                          {company.last_year_sales_usd_million 
-                            ? `$${company.last_year_sales_usd_million.toLocaleString()}`
-                            : '-'
-                          }
-                        </TableCell>
-                        <TableCell align="right">
-                          {safeRender(company.projected_growth_pct, true)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    
-                    {(selectedIndustry === 'dental' ? !currentDentalCompanies.length : !currentAestheticCompanies.length) && (
+              {isSmallScreen ? (
+                <Box>
+                  {(selectedIndustry === 'dental'
+                    ? currentDentalCompanies
+                    : currentAestheticCompanies).map((company) => (
+                    <CompanyCard key={company.id} company={company} />
+                  ))}
+
+                  {(selectedIndustry === 'dental'
+                    ? !currentDentalCompanies.length
+                    : !currentAestheticCompanies.length) && (
+                    <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
+                      No companies found
+                    </Typography>
+                  )}
+                </Box>
+              ) : (
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
                       <TableRow>
-                        <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            No companies found
-                          </Typography>
-                        </TableCell>
+                        <TableCell>Company Name</TableCell>
+                        <TableCell>Headquarters</TableCell>
+                        <TableCell align="right">Market Share %</TableCell>
+                        <TableCell align="right">Sales ($M)</TableCell>
+                        <TableCell align="right">Growth %</TableCell>
                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                    </TableHead>
+                    <TableBody>
+                      {(selectedIndustry === 'dental' ? currentDentalCompanies : currentAestheticCompanies).map((company) => (
+                        <TableRow key={company.id}>
+                          <TableCell>
+                            <Tooltip title={company.description || 'No description available'}>
+                              <Typography variant="body2">{company.name}</Typography>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell>{company.headquarters || '-'}</TableCell>
+                          <TableCell align="right">{safeRender(company.market_share_pct, true)}</TableCell>
+                          <TableCell align="right">
+                            {company.last_year_sales_usd_million
+                              ? `$${company.last_year_sales_usd_million.toLocaleString()}`
+                              : '-'}
+                          </TableCell>
+                          <TableCell align="right">
+                            {safeRender(company.projected_growth_pct, true)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+
+                      {(selectedIndustry === 'dental' ? !currentDentalCompanies.length : !currentAestheticCompanies.length) && (
+                        <TableRow>
+                          <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              No companies found
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
               
               <TablePagination
                 rowsPerPageOptions={[5, 10, 25, 50]}
