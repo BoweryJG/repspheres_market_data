@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { ThemeProvider as MuiThemeProvider, createTheme, Theme } from '@mui/material/styles';
+import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { getTheme } from '../theme';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -10,88 +11,6 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-// Common theme settings
-const getTheme = (mode: ThemeMode): Theme => {
-  const ACCENT_COLOR = '#00ffc6';
-  
-  return createTheme({
-    palette: {
-      mode,
-      primary: {
-        main: mode === 'light' ? '#1976d2' : '#90caf9',
-      },
-      secondary: {
-        main: mode === 'light' ? '#dc004e' : '#f48fb1',
-      },
-      background: {
-        default: mode === 'light' ? '#f5f5f5' : '#121212',
-        paper: mode === 'light' ? '#ffffff' : '#1e1e1e',
-      },
-      text: {
-        primary: mode === 'light' ? 'rgba(0, 0, 0, 0.87)' : 'rgba(255, 255, 255, 0.87)',
-        secondary: mode === 'light' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.6)',
-      },
-    },
-    typography: {
-      fontFamily: [
-        '-apple-system',
-        'BlinkMacSystemFont',
-        '"Segoe UI"',
-        'Roboto',
-        '"Helvetica Neue"',
-        'Arial',
-        'sans-serif',
-        '"Apple Color Emoji"',
-        '"Segoe UI Emoji"',
-        '"Segoe UI Symbol"',
-      ].join(','),
-      h1: {
-        fontWeight: 600,
-      },
-      h2: {
-        fontWeight: 500,
-      },
-    },
-    components: {
-      MuiCard: {
-        styleOverrides: {
-          root: {
-            borderRadius: 12,
-            transition: 'transform 0.2s ease-in-out, background-color 0.3s ease',
-            '&:hover': {
-              transform: 'translateY(-4px)',
-            },
-          },
-        },
-      },
-      MuiButton: {
-        styleOverrides: {
-          root: {
-            textTransform: 'none',
-            borderRadius: 8,
-          },
-        },
-      },
-      MuiTableCell: {
-        styleOverrides: {
-          root: {
-            borderBottom: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : undefined,
-          },
-        },
-      },
-      MuiTableRow: {
-        styleOverrides: {
-          root: {
-            '&:hover': {
-              backgroundColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-            },
-          },
-        },
-      },
-    },
-  });
-};
 
 interface ThemeProviderProps {
   children: ReactNode;
