@@ -27,6 +27,7 @@ import MenuItem from '@mui/material/MenuItem';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
+import { createCheckoutSession } from '../services/stripeService';
 
 const ACCENT_COLOR = '#00ffc6';
 
@@ -307,9 +308,9 @@ export default function NavBar() {
           Log In
         </Button>
         
-        <Button 
-          fullWidth 
-          component="a" 
+        <Button
+          fullWidth
+          component="a"
           href="/signup.html"
           variant="contained"
           sx={{
@@ -319,6 +320,23 @@ export default function NavBar() {
           }}
         >
           Sign Up
+        </Button>
+
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={async () => {
+            const url = await createCheckoutSession(import.meta.env.VITE_STRIPE_PRICE_ID as string);
+            if (url) window.location.href = url;
+          }}
+          sx={{
+            ...signupButtonStyles,
+            mt: 2,
+            ml: 0,
+            justifyContent: 'center',
+          }}
+        >
+          Subscribe
         </Button>
       </Box>
     </Box>
@@ -471,6 +489,17 @@ export default function NavBar() {
               sx={signupButtonStyles}
             >
               Sign Up
+            </Button>
+
+            <Button
+              variant="contained"
+              onClick={async () => {
+                const url = await createCheckoutSession(import.meta.env.VITE_STRIPE_PRICE_ID as string);
+                if (url) window.location.href = url;
+              }}
+              sx={{ ...signupButtonStyles, ml: 1 }}
+            >
+              Subscribe
             </Button>
           </Box>
 

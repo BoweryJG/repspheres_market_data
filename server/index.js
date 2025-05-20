@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const NodeCache = require('node-cache');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -10,11 +11,53 @@ const cache = new NodeCache({ stdTTL: 3600 }); // Cache for 1 hour
 
 // Middleware
 app.use(cors());
+// Stripe webhook needs the raw body, so register this route before express.json
+app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  console.log('Received webhook event:', event.type);
+  // TODO: handle subscription events and update database
+
+  res.json({ received: true });
+});
+
 app.use(express.json());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'News proxy service is running' });
+});
+
+// Create a Stripe checkout session for subscriptions
+app.post('/api/create-checkout-session', async (req, res) => {
+  try {
+    const { priceId } = req.body;
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: process.env.SUCCESS_URL,
+      cancel_url: process.env.CANCEL_URL,
+    });
+
+    res.json({ url: session.url });
+  } catch (error) {
+    console.error('Error creating checkout session:', error);
+    res.status(500).json({ error: 'Failed to create checkout session' });
+  }
 });
 
 // Endpoint to fetch news by procedure category
