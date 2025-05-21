@@ -201,6 +201,32 @@ app.get('/api/news/search', async (req, res) => {
   }
 });
 
+// Endpoint to fetch real-time news for a procedure using Brave Search
+app.get('/api/news/realtime/:procedureId', async (req, res) => {
+  try {
+    const { procedureId } = req.params;
+    const { limit = 5 } = req.query;
+
+    const query = encodeURIComponent(procedureId);
+    const cacheKey = `brave-news-${query}-${limit}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return res.json(cachedData);
+    }
+
+    const response = await axios.get('https://api.search.brave.com/res/v1/news/search', {
+      params: { q: query, count: limit },
+      headers: { 'X-Subscription-Token': process.env.BRAVE_SEARCH_API_KEY }
+    });
+
+    cache.set(cacheKey, response.data);
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error fetching Brave news:', error);
+    res.status(500).json({ error: 'Failed to fetch Brave news' });
+  }
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`News proxy service running on port ${port}`);

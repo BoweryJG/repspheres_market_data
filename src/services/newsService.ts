@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 // Types
 export interface NewsArticle {
@@ -92,6 +93,57 @@ export const getPlaceholderImage = (title: string): string => {
   const index = hash % placeholderImages.length;
   
   return placeholderImages[index];
+};
+
+// Hook to fetch real-time news for a specific procedure
+export const useRealtimeNewsByProcedure = (
+  procedureId: string,
+  limit: number = 5
+) => {
+  const [articles, setArticles] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRealtimeNews = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const NEWS_PROXY_URL = process.env.NODE_ENV === 'production'
+          ? 'https://repspheres-news-proxy.onrender.com'
+          : 'http://localhost:3001';
+
+        const response = await axios.get(
+          `${NEWS_PROXY_URL}/api/news/realtime/${procedureId}?limit=${limit}`
+        );
+
+        const items = response.data?.results || [];
+        const formatted = items.map((item: any, idx: number) => ({
+          id: idx,
+          title: item.title,
+          summary: item.description || '',
+          image_url: item.image_url || getPlaceholderImage(item.title),
+          published_date: item.published || new Date().toISOString(),
+          source: item.source?.title || item.source || 'Brave',
+          author: item.author,
+          url: item.url,
+          industry: 'dental'
+        }));
+
+        setArticles(formatted);
+      } catch (err: any) {
+        console.error(`Error fetching real-time news for ${procedureId}:`, err);
+        setError(err.message || 'Failed to fetch real-time news');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRealtimeNews();
+  }, [procedureId, limit]);
+
+  return { articles, loading, error };
 };
 
 // Hook to fetch news by procedure category
