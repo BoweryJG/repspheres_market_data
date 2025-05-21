@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { keyframes } from '@emotion/react';
 import { 
   Card, 
   CardContent, 
@@ -65,6 +66,12 @@ const formatGrowthRate = (rate: number | null | undefined): string => {
   if (rate == null) return 'N/A';
   return `${rate > 0 ? '+' : ''}${rate.toFixed(1)}%`;
 };
+
+const pulse = keyframes`
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1); }
+`;
 
 export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({ 
   dentalProcedures, 
@@ -209,18 +216,22 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
                   </Tooltip>
                 </Box>
               </Box>
-              <LinearProgress 
-                variant="determinate" 
+              <LinearProgress
+                variant="determinate"
                 value={(size / largestCategorySize) * 100}
-                sx={{ 
-                  height: 8, 
+                sx={{
+                  height: 8,
                   borderRadius: 2,
                   bgcolor: 'background.paper',
                   '& .MuiLinearProgress-bar': {
-                    bgcolor: index === 0 ? 'primary.main' : 
-                             index === 1 ? 'info.main' : 
-                             index === 2 ? 'success.main' : 
-                             index === 3 ? 'warning.main' : 'secondary.main'
+                    bgcolor: index === 0 ? 'primary.main' :
+                             index === 1 ? 'info.main' :
+                             index === 2 ? 'success.main' :
+                             index === 3 ? 'warning.main' : 'secondary.main',
+                     animation: `${pulse} 2s infinite`,
+                     '@media (prefers-reduced-motion: reduce)': {
+                       animation: 'none'
+                     }
                   }
                 }}
               />
