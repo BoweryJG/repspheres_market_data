@@ -649,9 +649,11 @@ const Dashboard: React.FC = () => {
         <Typography component="span" sx={{ ml: 1 }}>Aesthetic</Typography>
       </Box>
 
-      <MarketSizeOverview 
+      <MarketSizeOverview
         dentalProcedures={dentalProcedures}
         aestheticProcedures={aestheticProcedures}
+        dentalCompanies={dentalCompanies}
+        aestheticCompanies={aestheticCompanies}
         selectedIndustry={selectedIndustry}
       />
       

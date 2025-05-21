@@ -815,6 +815,8 @@ const Dashboard: React.FC = () => {
           <MarketSizeOverview
             dentalProcedures={dentalProcedures}
             aestheticProcedures={aestheticProcedures}
+            dentalCompanies={dentalCompanies}
+            aestheticCompanies={aestheticCompanies}
             selectedIndustry={selectedIndustry}
           />
         </Grid>

@@ -227,6 +227,51 @@ app.get('/api/news/realtime/:procedureId', async (req, res) => {
   }
 });
 
+// Endpoint to fetch stock quotes for given symbols using Alpha Vantage
+app.get('/api/stocks/quotes', async (req, res) => {
+  try {
+    const { symbols } = req.query;
+    if (!symbols) {
+      return res.status(400).json({ error: 'Symbols query parameter is required' });
+    }
+
+    const symbolList = String(symbols).split(',').map(s => s.trim().toUpperCase());
+    const results = [];
+
+    for (const sym of symbolList) {
+      const cacheKey = `stock-${sym}`;
+      const cached = cache.get(cacheKey);
+      if (cached) {
+        results.push(cached);
+        continue;
+      }
+
+      const response = await axios.get('https://www.alphavantage.co/query', {
+        params: {
+          function: 'GLOBAL_QUOTE',
+          symbol: sym,
+          apikey: process.env.ALPHA_VANTAGE_API_KEY
+        }
+      });
+
+      const data = response.data['Global Quote'] || {};
+      const quote = {
+        symbol: sym,
+        price: parseFloat(data['05. price']) || null,
+        changePercent: parseFloat((data['10. change percent'] || '0').replace('%', ''))
+      };
+
+      cache.set(cacheKey, quote, 300); // cache for 5 minutes
+      results.push(quote);
+    }
+
+    res.json(results);
+  } catch (error) {
+    console.error('Error fetching stock quotes:', error);
+    res.status(500).json({ error: 'Failed to fetch stock quotes' });
+  }
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`News proxy service running on port ${port}`);

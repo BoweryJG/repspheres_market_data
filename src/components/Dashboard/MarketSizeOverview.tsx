@@ -15,6 +15,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import PieChartIcon from '@mui/icons-material/PieChart';
+import StockTicker from './StockTicker';
 
 interface Procedure {
   id: number;
@@ -27,9 +28,17 @@ interface Procedure {
   [key: string]: any;
 }
 
+interface Company {
+  id: number;
+  name: string;
+  [key: string]: any;
+}
+
 interface MarketSizeOverviewProps {
   dentalProcedures: Procedure[];
   aestheticProcedures: Procedure[];
+  dentalCompanies: Company[];
+  aestheticCompanies: Company[];
   selectedIndustry: 'dental' | 'aesthetic';
 }
 
@@ -66,14 +75,21 @@ const formatGrowthRate = (rate: number | null | undefined): string => {
   return `${rate > 0 ? '+' : ''}${rate.toFixed(1)}%`;
 };
 
-export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({ 
-  dentalProcedures, 
-  aestheticProcedures, 
-  selectedIndustry 
+export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
+  dentalProcedures,
+  aestheticProcedures,
+  dentalCompanies,
+  aestheticCompanies,
+  selectedIndustry
 }) => {
-  const currentProcedures = useMemo(() => 
+  const currentProcedures = useMemo(() =>
     selectedIndustry === 'dental' ? dentalProcedures : aestheticProcedures,
     [selectedIndustry, dentalProcedures, aestheticProcedures]
+  );
+
+  const currentCompanies = useMemo(
+    () => (selectedIndustry === 'dental' ? dentalCompanies : aestheticCompanies),
+    [selectedIndustry, dentalCompanies, aestheticCompanies]
   );
   
   // Calculate total market size
@@ -138,6 +154,7 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
               <Typography variant="body2" color="text.secondary">
                 Across {currentProcedures.length} procedures
               </Typography>
+              <StockTicker companies={currentCompanies} />
             </Paper>
           </Grid>
           
