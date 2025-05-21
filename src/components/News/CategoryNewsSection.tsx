@@ -2,13 +2,11 @@ import React from 'react';
 import { 
   Box, 
   Typography, 
-  Grid, 
-  Divider, 
-  CircularProgress, 
+  Grid,
+  Divider,
   Alert,
   useTheme,
-  Button,
-  Skeleton
+  Button
 } from '@mui/material';
 import NewsCard from './NewsCard';
 import { useNewsByProcedureCategory, NewsArticle } from '../../services/newsService';
@@ -131,9 +129,13 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
       <Divider sx={{ mb: 2 }} />
       
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-          <CircularProgress />
-        </Box>
+        <Grid container spacing={3}>
+          {[1, 2, 3].map((n) => (
+            <Grid item xs={12} sm={6} md={4} key={n}>
+              <NewsCard industry={industry} loading />
+            </Grid>
+          ))}
+        </Grid>
       ) : error ? (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}

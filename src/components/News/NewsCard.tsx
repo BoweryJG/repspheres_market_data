@@ -1,26 +1,27 @@
 import React from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardMedia, 
-  Typography, 
-  Box, 
+import {
+  Card,
+  CardContent,
+  CardMedia,
+  Typography,
+  Box,
   Chip,
-  Link,
-  CardActionArea
+  CardActionArea,
+  Skeleton
 } from '@mui/material';
 import { format, parseISO } from 'date-fns';
 
 interface NewsCardProps {
-  id: number;
-  title: string;
-  summary: string;
+  id?: number;
+  title?: string;
+  summary?: string;
   image_url?: string;
-  published_date: string;
-  source: string;
+  published_date?: string;
+  source?: string;
   author?: string;
   url?: string;
   industry: 'dental' | 'aesthetic';
+  loading?: boolean;
 }
 
 const NewsCard: React.FC<NewsCardProps> = ({
@@ -31,7 +32,8 @@ const NewsCard: React.FC<NewsCardProps> = ({
   published_date,
   url,
   industry,
-  author
+  author,
+  loading = false
 }) => {
   // Format the date
   const formattedDate = published_date ? 
@@ -64,44 +66,58 @@ const NewsCard: React.FC<NewsCardProps> = ({
   };
 
   return (
-    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardActionArea 
-        component="a" 
-        href={isValidUrl(url) ? url : '#'} 
-        target="_blank" 
-        rel="noopener noreferrer"
-        onClick={handleCardClick}>
-
-        <CardMedia
-          component="img"
-          height="140"
-          image={image_url || defaultImage}
-          alt={title}
-        />
-        <CardContent sx={{ flexGrow: 1 }}>
-          <Typography gutterBottom variant="h6" component="h2" sx={{ fontWeight: 'bold', mb: 1 }}>
-            {title}
-          </Typography>
-          
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {summary}
-          </Typography>
-          
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
-            <Typography variant="caption" color="text.secondary">
-              {source} • {formattedDate}
+    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', opacity: 0, transform: 'translateY(4px)', animation: 'fadeIn 0.3s ease forwards', '@media (prefers-reduced-motion: reduce)': { animation: 'none', opacity: 1, transform: 'none' } }}>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: none; }
+        }
+      `}</style>
+      {loading ? (
+        <>
+          <Skeleton variant="rectangular" height={140} animation="wave" />
+          <CardContent sx={{ flexGrow: 1 }}>
+            <Skeleton variant="text" height={28} sx={{ mb: 1 }} />
+            <Skeleton variant="text" sx={{ mb: 1 }} />
+            <Skeleton variant="text" width="60%" />
+          </CardContent>
+        </>
+      ) : (
+        <CardActionArea
+          component="a"
+          href={isValidUrl(url) ? url : '#'}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={handleCardClick}
+        >
+          <CardMedia
+            component="img"
+            height="140"
+            image={image_url || defaultImage}
+            alt={title}
+          />
+          <CardContent sx={{ flexGrow: 1 }}>
+            <Typography gutterBottom variant="h6" component="h2" sx={{ fontWeight: 'bold', mb: 1 }}>
+              {title}
             </Typography>
-            
-            <Chip 
-              label={industry === 'dental' ? 'Dental' : 'Aesthetic'} 
-              size="small" 
-              color={industry === 'dental' ? 'primary' : 'secondary'}
-              variant="outlined"
-              sx={{ ml: 1 }}
-            />
-          </Box>
-        </CardContent>
-      </CardActionArea>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {summary}
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+              <Typography variant="caption" color="text.secondary">
+                {source} • {formattedDate}
+              </Typography>
+              <Chip
+                label={industry === 'dental' ? 'Dental' : 'Aesthetic'}
+                size="small"
+                color={industry === 'dental' ? 'primary' : 'secondary'}
+                variant="outlined"
+                sx={{ ml: 1 }}
+              />
+            </Box>
+          </CardContent>
+        </CardActionArea>
+      )}
     </Card>
   );
 };
