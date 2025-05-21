@@ -1,16 +1,17 @@
 import React, { useMemo } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  Typography, 
-  Grid, 
-  Paper, 
+import {
+  Card,
+  CardContent,
+  Typography,
+  Grid,
+  Paper,
   Box,
   Chip,
   Tooltip,
   LinearProgress,
   Divider
 } from '@mui/material';
+import { useTheme, lighten, darken } from '@mui/material/styles';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -66,12 +67,13 @@ const formatGrowthRate = (rate: number | null | undefined): string => {
   return `${rate > 0 ? '+' : ''}${rate.toFixed(1)}%`;
 };
 
-export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({ 
-  dentalProcedures, 
-  aestheticProcedures, 
-  selectedIndustry 
+export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
+  dentalProcedures,
+  aestheticProcedures,
+  selectedIndustry
 }) => {
-  const currentProcedures = useMemo(() => 
+  const theme = useTheme();
+  const currentProcedures = useMemo(() =>
     selectedIndustry === 'dental' ? dentalProcedures : aestheticProcedures,
     [selectedIndustry, dentalProcedures, aestheticProcedures]
   );
@@ -106,6 +108,28 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
 
   // Find the largest category for scaling
   const largestCategorySize = categoryMarketSizes.length > 0 ? categoryMarketSizes[0][1] : 0;
+
+  const getColorByIndex = (index: number): string => {
+    switch (index) {
+      case 0:
+        return theme.palette.primary.main;
+      case 1:
+        return theme.palette.info.main;
+      case 2:
+        return theme.palette.success.main;
+      case 3:
+        return theme.palette.warning.main;
+      default:
+        return theme.palette.secondary.main;
+    }
+  };
+
+  const animatedGradient = (base: string): string => {
+    const c1 = lighten(base, 0.6);
+    const c2 = lighten(base, 0.2);
+    const c3 = darken(base, 0.15);
+    return `linear-gradient(270deg, ${c1}, ${c2}, ${base}, ${c3})`;
+  };
 
   return (
     <Card elevation={3}>
@@ -198,18 +222,24 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
                   </Tooltip>
                 </Box>
               </Box>
-              <LinearProgress 
-                variant="determinate" 
+              <LinearProgress
+                variant="determinate"
                 value={(size / largestCategorySize) * 100}
-                sx={{ 
-                  height: 8, 
+                sx={{
+                  height: 8,
                   borderRadius: 2,
                   bgcolor: 'background.paper',
+                  overflow: 'hidden',
                   '& .MuiLinearProgress-bar': {
-                    bgcolor: index === 0 ? 'primary.main' : 
-                             index === 1 ? 'info.main' : 
-                             index === 2 ? 'success.main' : 
-                             index === 3 ? 'warning.main' : 'secondary.main'
+                    background: animatedGradient(getColorByIndex(index)),
+                    animation: 'pulseGradient 4s ease-in-out infinite',
+                    backgroundSize: '300% 100%',
+                    willChange: 'background-position'
+                  },
+                  '@keyframes pulseGradient': {
+                    '0%': { backgroundPosition: '0% 50%' },
+                    '50%': { backgroundPosition: '100% 50%' },
+                    '100%': { backgroundPosition: '0% 50%' }
                   }
                 }}
               />
