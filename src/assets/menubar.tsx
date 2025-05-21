@@ -25,11 +25,13 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import SearchIcon from '@mui/icons-material/Search';
 import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
 import LoginModal from '../components/Auth/LoginModal';
 import SignupModal from '../components/Auth/SignupModal';
 import LogoutModal from '../components/Auth/LogoutModal';
+import SuperSearch from '../components/Search/SuperSearch';
 import { useAuth } from '../context/AuthContext';
 
 const ACCENT_COLOR = '#00ffc6';
@@ -108,6 +110,7 @@ export default function NavBar() {
   const [loginOpen, setLoginOpen] = React.useState(false);
   const [signupOpen, setSignupOpen] = React.useState(false);
   const [logoutOpen, setLogoutOpen] = React.useState(false);
+  const [searchOpen, setSearchOpen] = React.useState(false);
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -448,14 +451,17 @@ export default function NavBar() {
           gap: { xs: 0.5, sm: 1 },
         }}>
           {/* Theme Toggle - Subtle but visible */}
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            mr: 1,
-            opacity: 0.8,
-          }}>
-            <ThemeToggle />
-          </Box>
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          mr: 1,
+          opacity: 0.8,
+        }}>
+          <ThemeToggle />
+          <IconButton color="inherit" size="small" onClick={() => setSearchOpen(true)} sx={{ ml: 1 }}>
+            <SearchIcon />
+          </IconButton>
+        </Box>
           
           {/* Auth Buttons - Always visible except on very small screens */}
           <Box sx={{
@@ -576,6 +582,7 @@ export default function NavBar() {
     <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
     <SignupModal open={signupOpen} onClose={() => setSignupOpen(false)} />
     <LogoutModal open={logoutOpen} onClose={() => setLogoutOpen(false)} />
+    <SuperSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 }
