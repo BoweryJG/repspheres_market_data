@@ -61,6 +61,9 @@ const getTheme = (mode: ThemeMode): Theme => {
             transition: 'transform 0.2s ease-in-out, background-color 0.3s ease',
             '&:hover': {
               transform: 'translateY(-4px)',
+              backgroundColor: mode === 'light'
+                ? 'rgba(0, 0, 0, 0.04)'
+                : 'rgba(255, 255, 255, 0.08)',
             },
           },
         },
@@ -70,6 +73,10 @@ const getTheme = (mode: ThemeMode): Theme => {
           root: {
             textTransform: 'none',
             borderRadius: 8,
+            transition: 'background-color 0.3s ease',
+            '&:hover': {
+              backgroundColor: mode === 'light' ? '#115293' : '#64b5f6',
+            },
           },
         },
       },

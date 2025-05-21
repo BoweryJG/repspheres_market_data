@@ -614,7 +614,7 @@ const Dashboard: React.FC = () => {
         <Typography variant="h4" component="div">
           US {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Market Dashboard
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', ml: 2, bgcolor: 'rgba(0, 128, 0, 0.1)', px: 2, py: 0.8, borderRadius: 2, border: '1px solid rgba(0, 128, 0, 0.3)' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', ml: 2, bgcolor: 'rgba(0, 128, 0, 0.1)', px: 2, py: 1, borderRadius: 2, border: '1px solid rgba(0, 128, 0, 0.3)' }}>
           <FiberManualRecordIcon sx={{ color: '#00c853', animation: 'pulse 1.5s infinite', mr: 1 }} fontSize="small" />
           <Box>
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
