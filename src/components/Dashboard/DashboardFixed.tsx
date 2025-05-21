@@ -38,6 +38,7 @@ import { supabase } from '../../services/supabaseClient';
 import { DentalCategory, AestheticCategory, CategoryHierarchy } from '../../types';
 import CategoryHierarchyView from './CategoryHierarchyView';
 import MarketSizeOverview, { formatMarketSize } from './MarketSizeOverview';
+import StockTicker from '../common/StockTicker';
 import ProcedureDetailsModal from './ProcedureDetailsModal';
 
 const Dashboard: React.FC = () => {
@@ -614,7 +615,7 @@ const Dashboard: React.FC = () => {
         <Typography variant="h4" component="div">
           US {selectedIndustry === 'dental' ? 'Dental' : 'Aesthetic'} Market Dashboard
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', ml: 2, bgcolor: 'rgba(0, 128, 0, 0.1)', px: 2, py: 1, borderRadius: 2, border: '1px solid rgba(0, 128, 0, 0.3)' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', ml: 2, bgcolor: 'rgba(0, 128, 0, 0.1)', px: 2, py: 1, borderRadius: 2, border: '1px solid rgba(0, 128, 0, 0.3)', animation: 'glow 2s infinite' }}>
           <FiberManualRecordIcon sx={{ color: '#00c853', animation: 'pulse 1.5s infinite', mr: 1 }} fontSize="small" />
           <Box>
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
@@ -625,6 +626,7 @@ const Dashboard: React.FC = () => {
               Real-time data analysis updated every 24 hours
             </Typography>
           </Box>
+          <StockTicker />
         </Box>
       </Box>
       
@@ -633,6 +635,11 @@ const Dashboard: React.FC = () => {
           0% { opacity: 1; }
           50% { opacity: 0.4; }
           100% { opacity: 1; }
+        }
+        @keyframes glow {
+          0% { box-shadow: 0 0 0px #00c853; }
+          50% { box-shadow: 0 0 8px #00c853; }
+          100% { box-shadow: 0 0 0px #00c853; }
         }
       `}</style>
       
