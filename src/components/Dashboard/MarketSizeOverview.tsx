@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -77,10 +77,21 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
   );
   
   // Calculate total market size
-  const totalMarketSize = useMemo(() => 
+  const totalMarketSize = useMemo(() =>
     currentProcedures.reduce((sum, p) => sum + (p.market_size_usd_millions || 0), 0),
     [currentProcedures]
   );
+
+  // Animated market size that slightly fluctuates
+  const [animatedMarketSize, setAnimatedMarketSize] = useState(totalMarketSize);
+
+  useEffect(() => {
+    setAnimatedMarketSize(totalMarketSize);
+    const id = setInterval(() => {
+      setAnimatedMarketSize(totalMarketSize + (Math.random() - 0.5) * 0.1);
+    }, 2000);
+    return () => clearInterval(id);
+  }, [totalMarketSize]);
   
   // Calculate average growth rate
   const averageGrowthRate = useMemo(() => {
@@ -129,9 +140,9 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
               </Box>
               <Box display="flex" alignItems="baseline">
                 <Typography variant="h4" sx={{ mt: 1, mb: 1 }}>
-                  {formatMarketSize(totalMarketSize)}
+                  {formatMarketSize(animatedMarketSize)}
                 </Typography>
-                <Tooltip title={formatMarketSizeDetailed(totalMarketSize)}>
+                <Tooltip title={formatMarketSizeDetailed(animatedMarketSize)}>
                   <InfoOutlinedIcon sx={{ ml: 1, fontSize: '0.9rem', color: 'text.secondary', cursor: 'help' }} />
                 </Tooltip>
               </Box>
