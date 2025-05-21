@@ -78,6 +78,12 @@ const CategoryHierarchyView: React.FC<CategoryHierarchyViewProps> = ({
     to { opacity: 1; transform: none; }
   `;
 
+  const pulse = keyframes`
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.96); }
+    100% { opacity: 1; transform: scale(1); }
+  `;
+
   // Filter top-level categories for current industry
   const topLevelCategories = categories.filter(
     cat => cat.parent_id === null && 
@@ -149,8 +155,8 @@ const CategoryHierarchyView: React.FC<CategoryHierarchyViewProps> = ({
           selected={isSelected}
           onClick={() => onSelectCategory(category.id)}
           sx={{
+            position: 'relative',
             pl: 2 + level * 2,
-            borderLeft: isSelected ? `4px solid ${category.color_code || '#1976d2'}` : 'none',
             bgcolor: isSelected ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
             opacity: 0,
             transform: 'translateY(4px)',
@@ -159,6 +165,19 @@ const CategoryHierarchyView: React.FC<CategoryHierarchyViewProps> = ({
               animation: 'none',
               opacity: 1,
               transform: 'none'
+            },
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: isSelected ? '4px' : 0,
+              backgroundColor: category.color_code || '#1976d2',
+              animation: isSelected ? `${pulse} 2s infinite` : 'none',
+              '@media (prefers-reduced-motion: reduce)': {
+                animation: 'none'
+              }
             },
             '&:hover': {
               bgcolor: 'rgba(25, 118, 210, 0.04)',
