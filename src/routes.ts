@@ -2,10 +2,11 @@ import { lazy } from 'react';
 import { RouteConfig } from './types';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
-const CategoryPage = lazy(() => import('./pages/CategoryPage'));
-const ProcedureDetailsPage = lazy(() => import('./pages/ProcedureDetailsPage'));
-const SearchPage = lazy(() => import('./pages/SearchPage'));
-const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+// These pages don't exist yet, will be created later
+// const CategoryPage = lazy(() => import('./pages/CategoryPage'));
+// const ProcedureDetailsPage = lazy(() => import('./pages/ProcedureDetailsPage'));
+// const SearchPage = lazy(() => import('./pages/SearchPage'));
+// const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 export const routes: RouteConfig[] = [
   {
@@ -13,6 +14,8 @@ export const routes: RouteConfig[] = [
     element: HomePage,
     exact: true,
   },
+  // Temporarily commented out routes for pages that don't exist yet
+  /*
   {
     path: '/category/:categoryId',
     element: CategoryPage,
@@ -29,4 +32,5 @@ export const routes: RouteConfig[] = [
     path: '*',
     element: NotFoundPage,
   },
+  */
 ];
