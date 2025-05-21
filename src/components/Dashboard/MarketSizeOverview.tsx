@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { parseNumber } from '../../utils/numberUtils';
 import { keyframes } from '@emotion/react';
 import { 
   Card, 
@@ -84,8 +85,12 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
   );
   
   // Calculate total market size
-  const totalMarketSize = useMemo(() =>
-    currentProcedures.reduce((sum, p) => sum + (p.market_size_usd_millions || 0), 0),
+  const totalMarketSize = useMemo(
+    () =>
+      currentProcedures.reduce(
+        (sum, p) => sum + parseNumber(p.market_size_usd_millions),
+        0
+      ),
     [currentProcedures]
   );
 
@@ -102,9 +107,16 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
   
   // Calculate average growth rate
   const averageGrowthRate = useMemo(() => {
-    const procedures = currentProcedures.filter(p => p.yearly_growth_percentage != null);
+    const procedures = currentProcedures.filter(
+      p => p.yearly_growth_percentage != null
+    );
     if (procedures.length === 0) return null;
-    return procedures.reduce((sum, p) => sum + (p.yearly_growth_percentage || 0), 0) / procedures.length;
+    return (
+      procedures.reduce(
+        (sum, p) => sum + parseNumber(p.yearly_growth_percentage),
+        0
+      ) / procedures.length
+    );
   }, [currentProcedures]);
   
   // Calculate category market sizes
@@ -113,7 +125,7 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
     
     currentProcedures.forEach(p => {
       const category = p.category || p.clinical_category || 'Unknown';
-      const size = p.market_size_usd_millions || 0;
+      const size = parseNumber(p.market_size_usd_millions);
       categories.set(category, (categories.get(category) || 0) + size);
     });
     
