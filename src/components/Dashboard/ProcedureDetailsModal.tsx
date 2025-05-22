@@ -12,6 +12,7 @@ import CategoryIcon from '@mui/icons-material/Category';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import TimelapseIcon from '@mui/icons-material/Timelapse';
 import { formatMarketSize } from './MarketSizeOverview';
+import RealtimeNewsSection from '../News/RealtimeNewsSection';
 
 // Tab panel component for the tabbed interface
 interface TabPanelProps {
@@ -431,6 +432,16 @@ const ProcedureDetailsModal: React.FC<ProcedureDetailsModalProps> = ({
                   ))}
                 </Grid>
               </Paper>
+            </Grid>
+
+            {/* Real-time News */}
+            <Grid item xs={12}>
+              <RealtimeNewsSection
+                procedureId={String(procedure.id)}
+                procedureName={procedure.name}
+                industry={industry}
+                limit={3}
+              />
             </Grid>
           </Grid>
         </TabPanel>
