@@ -38,7 +38,6 @@ import { supabase } from '../../services/supabaseClient';
 import { DentalCategory, AestheticCategory, CategoryHierarchy } from '../../types';
 import CategoryHierarchyView from './CategoryHierarchyView';
 import MarketSizeOverview, { formatMarketSize } from './MarketSizeOverview';
-import StockTicker from '../common/StockTicker';
 import ProcedureDetailsModal from './ProcedureDetailsModal';
 
 const Dashboard: React.FC = () => {
@@ -626,7 +625,6 @@ const Dashboard: React.FC = () => {
               Real-time data analysis updated every 24 hours
             </Typography>
           </Box>
-          <StockTicker />
         </Box>
       </Box>
       
