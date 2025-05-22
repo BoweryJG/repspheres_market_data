@@ -67,10 +67,22 @@ const formatGrowthRate = (rate: number | null | undefined): string => {
   return `${rate > 0 ? '+' : ''}${rate.toFixed(1)}%`;
 };
 
+// Animation for pulsing effect on progress bars
+// Avoid modifying the `transform` property so it doesn't
+// interfere with LinearProgress's width calculations
 const pulse = keyframes`
-  0% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(0.96); }
-  100% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 1;
+    filter: brightness(100%);
+  }
+  50% {
+    opacity: 0.75;
+    filter: brightness(115%);
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(100%);
+  }
 `;
 
 export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({ 
