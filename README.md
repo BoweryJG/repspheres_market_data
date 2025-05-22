@@ -79,3 +79,10 @@ curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/list-tabl
 
 The output will show each table name with row counts. Confirm that `category_hierarchy`, `dental_companies`, and `aesthetic_companies` have rows. Alternatively, you can open the Supabase dashboard, navigate to the **Table Editor**, and check that these tables contain data.
 
+## Live Stock Ticker
+
+The dashboard includes a stock ticker component that cycles through ticker symbols found in the
+`dental_companies` and `aesthetic_companies` tables. When the app starts, the ticker fetches real-time
+prices from the Yahoo Finance API and displays them in the header. Network access is required for the
+price lookup.
+
