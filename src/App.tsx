@@ -1,5 +1,5 @@
 import React from 'react';
-import Dashboard from './components/Dashboard/DashboardFixed';
+import EnhancedDashboard from './components/Dashboard/EnhancedDashboard';
 import { OrbContextProvider } from './assets/OrbContextProvider';
 import NavBar from './assets/menubar';
 import { ThemeProvider } from './context/ThemeContext';
@@ -11,7 +11,7 @@ const App: React.FC = () => {
       <AuthProvider>
         <OrbContextProvider>
           <NavBar />
-          <Dashboard />
+          <EnhancedDashboard />
         </OrbContextProvider>
       </AuthProvider>
     </ThemeProvider>
