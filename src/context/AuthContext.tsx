@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js'; // Added Session
 import { supabase } from '../services/supabaseClient';
+import apiClient from '../services/api-client'; // Import the apiClient
 
 interface AuthContextType {
   user: User | null;
@@ -19,16 +20,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
+    const setAuthHeader = (session: Session | null) => {
+      if (session && session.access_token) {
+        apiClient.setAuthToken(session.access_token);
+        setUser(session.user);
+      } else {
+        apiClient.clearAuthToken();
+        setUser(null);
+      }
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      setAuthHeader(session);
     });
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthHeader(session);
     });
 
     return () => {
-      subscription.subscription.unsubscribe();
+      authListener?.subscription.unsubscribe();
     };
   }, []);
 
@@ -42,6 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    apiClient.clearAuthToken(); // Explicitly clear token on sign out
   };
 
   return (
@@ -58,4 +70,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
