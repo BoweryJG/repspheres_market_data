@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { keyframes } from '@emotion/react';
 import { 
   Card, 
   CardContent, 
@@ -66,6 +67,15 @@ const formatGrowthRate = (rate: number | null | undefined): string => {
   return `${rate > 0 ? '+' : ''}${rate.toFixed(1)}%`;
 };
 
+// Animation for pulsing effect on progress bars
+// Avoid modifying the `transform` property so it doesn't
+// interfere with LinearProgress's width calculations
+const pulse = keyframes`
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+`;
+
 export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({ 
   dentalProcedures, 
   aestheticProcedures, 
@@ -77,8 +87,12 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
   );
   
   // Calculate total market size
-  const totalMarketSize = useMemo(() =>
-    currentProcedures.reduce((sum, p) => sum + (p.market_size_usd_millions || 0), 0),
+  const totalMarketSize = useMemo(
+    () =>
+      currentProcedures.reduce(
+        (sum, p) => sum + (Number(p.market_size_usd_millions) || 0),
+        0
+      ),
     [currentProcedures]
   );
 
@@ -95,9 +109,16 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
   
   // Calculate average growth rate
   const averageGrowthRate = useMemo(() => {
-    const procedures = currentProcedures.filter(p => p.yearly_growth_percentage != null);
+    const procedures = currentProcedures.filter(
+      p => p.yearly_growth_percentage != null
+    );
     if (procedures.length === 0) return null;
-    return procedures.reduce((sum, p) => sum + (p.yearly_growth_percentage || 0), 0) / procedures.length;
+    return (
+      procedures.reduce(
+        (sum, p) => sum + (Number(p.yearly_growth_percentage) || 0),
+        0
+      ) / procedures.length
+    );
   }, [currentProcedures]);
   
   // Calculate category market sizes
@@ -106,7 +127,7 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
     
     currentProcedures.forEach(p => {
       const category = p.category || p.clinical_category || 'Unknown';
-      const size = p.market_size_usd_millions || 0;
+      const size = Number(p.market_size_usd_millions) || 0;
       categories.set(category, (categories.get(category) || 0) + size);
     });
     
@@ -209,18 +230,22 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
                   </Tooltip>
                 </Box>
               </Box>
-              <LinearProgress 
-                variant="determinate" 
+              <LinearProgress
+                variant="determinate"
                 value={(size / largestCategorySize) * 100}
-                sx={{ 
-                  height: 8, 
+                sx={{
+                  height: 8,
                   borderRadius: 2,
                   bgcolor: 'background.paper',
                   '& .MuiLinearProgress-bar': {
-                    bgcolor: index === 0 ? 'primary.main' : 
-                             index === 1 ? 'info.main' : 
-                             index === 2 ? 'success.main' : 
-                             index === 3 ? 'warning.main' : 'secondary.main'
+                    bgcolor: index === 0 ? 'primary.main' :
+                             index === 1 ? 'info.main' :
+                             index === 2 ? 'success.main' :
+                             index === 3 ? 'warning.main' : 'secondary.main',
+                     animation: `${pulse} 2s infinite`,
+                     '@media (prefers-reduced-motion: reduce)': {
+                       animation: 'none'
+                     }
                   }
                 }}
               />
