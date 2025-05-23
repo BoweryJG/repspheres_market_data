@@ -200,13 +200,16 @@ class MarketIntelligenceService {
       params: { query, limit }
     });
 
-    return (response.data.results || []).map((item: any) => ({
+    // Brave Search API returns results in web.results
+    const results = response.data.web?.results || response.data.results || [];
+    
+    return results.map((item: any) => ({
       title: item.title,
       url: item.url,
       description: item.description || item.snippet || '',
       relevanceScore: item.relevance_score || 0.5,
-      publishedDate: item.published_date,
-      source: item.source || this.extractDomain(item.url)
+      publishedDate: item.page_age || item.published_date,
+      source: item.profile?.name || item.source || this.extractDomain(item.url)
     }));
   }
 

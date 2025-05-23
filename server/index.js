@@ -231,7 +231,7 @@ app.get('/api/news/realtime/:procedureId', async (req, res) => {
 app.get('/api/search/brave', async (req, res) => {
   try {
     const { query, q, limit = 10 } = req.query;
-    const searchQuery = encodeURIComponent(query || q || '');
+    const searchQuery = query || q || '';
 
     if (!searchQuery) {
       return res.status(400).json({ error: 'Search query is required' });
@@ -245,14 +245,24 @@ app.get('/api/search/brave', async (req, res) => {
 
     const response = await axios.get('https://api.search.brave.com/res/v1/web/search', {
       params: { q: searchQuery, count: limit },
-      headers: { 'X-Subscription-Token': process.env.BRAVE_SEARCH_API_KEY }
+      headers: { 
+        'X-Subscription-Token': process.env.BRAVE_SEARCH_API_KEY,
+        'Accept': 'application/json'
+      }
     });
 
     cache.set(cacheKey, response.data);
     res.json(response.data);
   } catch (error) {
     console.error('Error fetching Brave search results:', error);
-    res.status(500).json({ error: 'Failed to fetch Brave search results' });
+    if (error.response) {
+      console.error('Error response data:', JSON.stringify(error.response.data, null, 2));
+      console.error('Error status:', error.response.status);
+    }
+    res.status(500).json({ 
+      error: 'Failed to fetch Brave search results',
+      details: error.response?.data || error.message 
+    });
   }
 });
 
