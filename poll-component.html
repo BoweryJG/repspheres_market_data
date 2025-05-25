@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dental & Aesthetic Market Intelligence Poll</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .industry-toggle {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .industry-btn {
+            padding: 8px 16px;
+            border: 1px solid #2196f3;
+            background-color: white;
+            color: #2196f3;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .industry-btn.active {
+            background-color: #2196f3;
+            color: white;
+        }
+        .container {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .poll-question {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .poll-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .poll-option {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .poll-option:hover {
+            background-color: #f5f5f5;
+        }
+        .poll-option.selected {
+            background-color: #e3f2fd;
+            border-color: #2196f3;
+        }
+        .poll-option-text {
+            flex-grow: 1;
+        }
+        .poll-option-percentage {
+            width: 50px;
+            text-align: right;
+            font-weight: bold;
+        }
+        .poll-option-bar {
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin-top: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+        .poll-option-bar-fill {
+            position: absolute;
+            height: 100%;
+            background-color: #2196f3;
+            border-radius: 5px;
+            transition: width 0.5s ease-in-out;
+        }
+        .poll-total {
+            font-size: 0.9rem;
+            color: #666;
+            text-align: right;
+            margin-top: 10px;
+        }
+        .poll-button {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+        .poll-button:hover {
+            background-color: #1976d2;
+        }
+        .poll-button:disabled {
+            background-color: #bdbdbd;
+            cursor: not-allowed;
+        }
+        .market-data {
+            margin-top: 30px;
+        }
+        .search-results {
+            margin-top: 20px;
+        }
+        .search-result {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .search-result h3 {
+            margin-top: 0;
+            margin-bottom: 5px;
+        }
+        .search-result p {
+            margin: 5px 0;
+            color: #555;
+        }
+        .search-result a {
+            color: #1976d2;
+            text-decoration: none;
+        }
+        .search-result a:hover {
+            text-decoration: underline;
+        }
+        .search-result-meta {
+            font-size: 0.8rem;
+            color: #777;
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #2196f3;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Market Intelligence Poll</h1>
+        <div class="industry-toggle">
+            <span>Industry:</span>
+            <button id="dentalBtn" class="industry-btn active">Dental</button>
+            <button id="aestheticBtn" class="industry-btn">Aesthetic</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div id="pollQuestion" class="poll-question">
+            Which dental technology trend do you think will have the biggest impact in 2025?
+        </div>
+        <div class="poll-options" id="pollOptions">
+            <!-- Poll options will be dynamically populated -->
+        </div>
+        <button id="voteButton" class="poll-button" disabled>Vote</button>
+        <div class="poll-total" id="pollTotal">0 votes</div>
+    </div>
+    
+    <div class="container market-data">
+        <h2>Market Intelligence</h2>
+        <p>Explore market data related to the poll options:</p>
+        
+        <div id="searchResults" class="search-results">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Industry settings
+        const industries = {
+            dental: {
+                question: 'Which dental technology trend do you think will have the biggest impact in 2025?',
+                options: [
+                    { id: 'ai', text: 'AI-powered diagnostics', votes: 0 },
+                    { id: 'digital', text: 'Digital impression systems', votes: 0 },
+                    { id: '3d', text: '3D printing for prosthetics', votes: 0 },
+                    { id: 'robotics', text: 'Robotic-assisted procedures', votes: 0 },
+                    { id: 'regenerative', text: 'Regenerative dental materials', votes: 0 }
+                ],
+                searchPrefix: 'dental'
+            },
+            aesthetic: {
+                question: 'Which aesthetic procedure trend do you think will have the biggest impact in 2025?',
+                options: [
+                    { id: 'noninvasive', text: 'Non-invasive facial rejuvenation', votes: 0 },
+                    { id: 'laser', text: 'Advanced laser treatments', votes: 0 },
+                    { id: 'prp', text: 'PRP and stem cell therapies', votes: 0 },
+                    { id: 'body', text: 'Body contouring technologies', votes: 0 },
+                    { id: 'personalized', text: 'Personalized aesthetic medicine', votes: 0 }
+                ],
+                searchPrefix: 'aesthetic'
+            }
+        };
+
+        // Current industry and poll data
+        let currentIndustry = 'dental';
+        const pollData = {
+            options: [...industries.dental.options],
+            totalVotes: 0,
+            selectedOption: null
+        };
+
+        // DOM elements - initialize after DOM is loaded
+        let pollQuestionEl;
+        let pollOptionsEl;
+        let voteButtonEl;
+        let pollTotalEl;
+        let searchResultsEl;
+        let dentalBtnEl;
+        let aestheticBtnEl;
+
+        // Switch industry
+        function switchIndustry(industry) {
+            currentIndustry = industry;
+            
+            // Update UI
+            if (industry === 'dental') {
+                dentalBtnEl.classList.add('active');
+                aestheticBtnEl.classList.remove('active');
+            } else {
+                dentalBtnEl.classList.remove('active');
+                aestheticBtnEl.classList.add('active');
+            }
+            
+            // Update question
+            pollQuestionEl.textContent = industries[industry].question;
+            
+            // Load saved data for this industry
+            const savedData = localStorage.getItem(`${industry}Poll`);
+            if (savedData) {
+                const parsed = JSON.parse(savedData);
+                pollData.options = parsed.options;
+                pollData.totalVotes = parsed.totalVotes;
+                pollData.selectedOption = parsed.selectedOption;
+            } else {
+                // Reset to default options for this industry
+                pollData.options = [...industries[industry].options];
+                pollData.totalVotes = 0;
+                pollData.selectedOption = null;
+            }
+            
+            // Re-render
+            renderPollOptions();
+            
+            // If an option is already selected, fetch its market data
+            if (pollData.selectedOption) {
+                voteButtonEl.disabled = false;
+                fetchMarketData(getSearchQueryForOption(pollData.selectedOption));
+            } else {
+                // Clear market data
+                searchResultsEl.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                `;
+            }
+        }
+
+        // Render poll options
+        function renderPollOptions() {
+            pollOptionsEl.innerHTML = '';
+            
+            pollData.options.forEach(option => {
+                const percentage = pollData.totalVotes > 0 
+                    ? Math.round((option.votes / pollData.totalVotes) * 100) 
+                    : 0;
+                
+                const optionEl = document.createElement('div');
+                optionEl.className = `poll-option ${option.id === pollData.selectedOption ? 'selected' : ''}`;
+                optionEl.dataset.id = option.id;
+                
+                optionEl.innerHTML = `
+                    <div class="poll-option-text">${option.text}</div>
+                    <div class="poll-option-percentage">${percentage}%</div>
+                    <div class="poll-option-bar">
+                        <div class="poll-option-bar-fill" style="width: ${percentage}%"></div>
+                    </div>
+                `;
+                
+                optionEl.addEventListener('click', () => selectOption(option.id));
+                pollOptionsEl.appendChild(optionEl);
+            });
+            
+            pollTotalEl.textContent = `${pollData.totalVotes} vote${pollData.totalVotes !== 1 ? 's' : ''}`;
+        }
+
+        // Select an option
+        function selectOption(optionId) {
+            pollData.selectedOption = optionId;
+            voteButtonEl.disabled = false;
+            renderPollOptions();
+            
+            // Fetch market data for the selected option
+            fetchMarketData(getSearchQueryForOption(optionId));
+        }
+
+        // Vote for the selected option
+        function vote() {
+            if (!pollData.selectedOption) return;
+            
+            const option = pollData.options.find(opt => opt.id === pollData.selectedOption);
+            if (option) {
+                option.votes++;
+                pollData.totalVotes++;
+                voteButtonEl.disabled = true;
+                renderPollOptions();
+                
+                // Save to localStorage with industry prefix
+                localStorage.setItem(`${currentIndustry}Poll`, JSON.stringify(pollData));
+            }
+        }
+
+        // Get search query based on option
+        function getSearchQueryForOption(optionId) {
+            const option = pollData.options.find(opt => opt.id === optionId);
+            if (!option) return '';
+            
+            const baseQuery = option.text;
+            const industryPrefix = industries[currentIndustry].searchPrefix;
+            
+            // Generate industry-specific search queries
+            if (currentIndustry === 'dental') {
+                switch(optionId) {
+                    case 'ai':
+                        return `${baseQuery} dental market trends 2025`;
+                    case 'digital':
+                        return `${baseQuery} dental technology advancements`;
+                    case '3d':
+                        return `${baseQuery} dental industry adoption`;
+                    case 'robotics':
+                        return `${baseQuery} dental surgery innovation`;
+                    case 'regenerative':
+                        return `${baseQuery} dental research breakthroughs`;
+                    default:
+                        return `${baseQuery} dental industry`;
+                }
+            } else {
+                // Aesthetic industry queries
+                switch(optionId) {
+                    case 'noninvasive':
+                        return `${baseQuery} aesthetic medicine trends 2025`;
+                    case 'laser':
+                        return `${baseQuery} aesthetic technology advancements`;
+                    case 'prp':
+                        return `${baseQuery} aesthetic regenerative medicine`;
+                    case 'body':
+                        return `${baseQuery} aesthetic industry adoption`;
+                    case 'personalized':
+                        return `${baseQuery} aesthetic medicine innovation`;
+                    default:
+                        return `${baseQuery} aesthetic industry`;
+                }
+            }
+        }
+
+        // Fetch market data using Brave Search API
+        async function fetchMarketData(query) {
+            searchResultsEl.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch(`http://localhost:3001/api/search/brave?query=${encodeURIComponent(query)}&limit=5`);
+                
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                renderSearchResults(data, query);
+            } catch (error) {
+                console.error('Error fetching market data:', error);
+                searchResultsEl.innerHTML = `
+                    <div class="error">
+                        Failed to fetch market data. Please make sure the server is running on port 3001.
+                        <br>Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Render search results
+        function renderSearchResults(data, query) {
+            if (!data || !data.web || !data.web.results || data.web.results.length === 0) {
+                searchResultsEl.innerHTML = `<p>No results found for "${query}"</p>`;
+                return;
+            }
+            
+            const results = data.web.results;
+            
+            searchResultsEl.innerHTML = `
+                <h3>Market Intelligence for "${query}"</h3>
+                ${results.map(result => `
+                    <div class="search-result">
+                        <h3><a href="${result.url}" target="_blank">${result.title}</a></h3>
+                        <p>${result.description}</p>
+                        <div class="search-result-meta">
+                            <span>Source: ${result.profile?.name || new URL(result.url).hostname}</span>
+                            ${result.age ? `<span>Published: ${result.age}</span>` : ''}
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        // Initialize
+        function init() {
+            // Get DOM elements
+            pollQuestionEl = document.getElementById('pollQuestion');
+            pollOptionsEl = document.getElementById('pollOptions');
+            voteButtonEl = document.getElementById('voteButton');
+            pollTotalEl = document.getElementById('pollTotal');
+            searchResultsEl = document.getElementById('searchResults');
+            dentalBtnEl = document.getElementById('dentalBtn');
+            aestheticBtnEl = document.getElementById('aestheticBtn');
+            
+            // Load saved data from localStorage for current industry
+            const savedData = localStorage.getItem(`${currentIndustry}Poll`);
+            if (savedData) {
+                const parsed = JSON.parse(savedData);
+                pollData.options = parsed.options;
+                pollData.totalVotes = parsed.totalVotes;
+                pollData.selectedOption = parsed.selectedOption;
+            }
+            
+            renderPollOptions();
+            
+            // Event listeners
+            voteButtonEl.addEventListener('click', vote);
+            dentalBtnEl.addEventListener('click', () => switchIndustry('dental'));
+            aestheticBtnEl.addEventListener('click', () => switchIndustry('aesthetic'));
+            
+            // If an option is already selected, fetch its market data
+            if (pollData.selectedOption) {
+                voteButtonEl.disabled = false;
+                fetchMarketData(getSearchQueryForOption(pollData.selectedOption));
+            }
+        }
+
+        // Start the app when DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
