@@ -223,15 +223,15 @@ const EnhancedDashboard: React.FC = () => {
               </Box>
             }
           />
-          <Tab 
+          <Tab
             label={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CategoryIcon />
-                <span>Category Intelligence</span>
+                <TrendingUpIcon />
+                <span>Market Data</span>
               </Box>
             }
           />
-          <Tab 
+          <Tab
             label={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <BusinessIcon />
@@ -239,11 +239,11 @@ const EnhancedDashboard: React.FC = () => {
               </Box>
             }
           />
-          <Tab 
+          <Tab
             label={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <TrendingUpIcon />
-                <span>Market Data</span>
+                <CategoryIcon />
+                <span>Category Intelligence</span>
               </Box>
             }
           />
@@ -365,11 +365,7 @@ const EnhancedDashboard: React.FC = () => {
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
-        <CategoryInsights 
-          industry={industry}
-          onCategorySelect={setSelectedCategoryId}
-          onNewCategoryDiscovered={handleNewCategoryDiscovered}
-        />
+        <OriginalDashboard />
       </TabPanel>
 
       <TabPanel value={tabValue} index={2}>
@@ -381,7 +377,11 @@ const EnhancedDashboard: React.FC = () => {
       </TabPanel>
 
       <TabPanel value={tabValue} index={3}>
-        <OriginalDashboard />
+        <CategoryInsights
+          industry={industry}
+          onCategorySelect={setSelectedCategoryId}
+          onNewCategoryDiscovered={handleNewCategoryDiscovered}
+        />
       </TabPanel>
 
       {/* AI Search Dialog */}
