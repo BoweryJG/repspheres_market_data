@@ -2,6 +2,9 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 
+// Ensure the browser tab displays the correct title
+document.title = 'Market Insights';
+
 const container = document.getElementById('root');
 if (container) {
   const root = createRoot(container);
