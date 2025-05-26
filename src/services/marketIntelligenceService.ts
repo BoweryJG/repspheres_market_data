@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { supabase } from './supabaseClient';
+import env from '../setupEnv'; // Use the centralized env setup
 
-const NEWS_PROXY_URL = process.env.NODE_ENV === 'production'
-  ? 'https://repspheres-news-proxy.onrender.com'
-  : 'http://localhost:3001';
+// Use the API URL from the environment configuration
+const NEWS_PROXY_URL = env.VITE_API_URL;
 
 // Cache configuration
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
