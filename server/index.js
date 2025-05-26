@@ -9,7 +9,11 @@ const port = process.env.PORT || 3001;
 const cache = new NodeCache({ stdTTL: 3600 }); // Cache for 1 hour
 
 // Middleware
-app.use(cors());
+const corsOptions = {
+  origin: 'https://marketdata.repspheres.com',
+  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Health check endpoint
