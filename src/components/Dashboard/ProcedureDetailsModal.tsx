@@ -1,466 +1,669 @@
-import React from 'react';
-import { 
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, Typography, Grid, Divider, Chip, Box, 
-  Table, TableBody, TableCell, TableRow, Paper,
-  Tabs, Tab, useTheme, IconButton
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+  Box,
+  Tabs,
+  Tab,
+  CircularProgress,
+  Chip,
+  Grid,
+  Card,
+  CardContent,
+  IconButton,
+  Divider,
+  Alert,
+  Link,
+  Paper,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Avatar,
+  LinearProgress,
+  Skeleton,
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import CategoryIcon from '@mui/icons-material/Category';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
-import TimelapseIcon from '@mui/icons-material/Timelapse';
-import { formatMarketSize } from './MarketSizeOverview';
-import RealtimeNewsSection from '../News/RealtimeNewsSection';
+import {
+  Close as CloseIcon,
+  TrendingUp as TrendingUpIcon,
+  AttachMoney as MoneyIcon,
+  Science as ScienceIcon,
+  Article as ArticleIcon,
+  LocalHospital as HospitalIcon,
+  Timer as TimerIcon,
+  Warning as WarningIcon,
+  CheckCircle as CheckIcon,
+  Search as SearchIcon,
+  OpenInNew as OpenInNewIcon,
+  AutoAwesome as AIIcon,
+  Biotech as BiotechIcon,
+  Psychology as PsychologyIcon,
+} from '@mui/icons-material';
+import { search as braveSearch } from '../../services/braveSearchService';
 
-// Tab panel component for the tabbed interface
+interface ProcedureDetailsModalProps {
+  open: boolean;
+  onClose: () => void;
+  procedure: any;
+  industry: 'dental' | 'aesthetic';
+}
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
   value: number;
 }
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`procedure-tabpanel-${index}`}
-      aria-labelledby={`procedure-tab-${index}`}
-      style={{ padding: '20px 0' }}
-      {...other}
-    >
-      {value === index && (
-        <Box>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
-
-function a11yProps(index: number) {
-  return {
-    id: `procedure-tab-${index}`,
-    'aria-controls': `procedure-tabpanel-${index}`,
-  };
-}
-
-// Main component props
-interface ProcedureDetailsModalProps {
-  open: boolean;
-  onClose: () => void;
-  procedure: any | null;
-  industry: 'dental' | 'aesthetic';
-}
+const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
+  <div role="tabpanel" hidden={value !== index}>
+    {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+  </div>
+);
 
 const ProcedureDetailsModal: React.FC<ProcedureDetailsModalProps> = ({
   open,
   onClose,
   procedure,
-  industry
+  industry,
 }) => {
-  const theme = useTheme();
-  const [tabValue, setTabValue] = React.useState(0);
+  const [tabValue, setTabValue] = useState(0);
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+  useEffect(() => {
+    if (open && procedure && tabValue === 1) {
+      fetchProcedureInsights();
+    }
+  }, [open, procedure, tabValue]);
+
+  const fetchProcedureInsights = async () => {
+    if (!procedure) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const procedureName = procedure.name || procedure.procedure_name;
+      const searchQuery = `${procedureName} ${industry} procedure latest research innovations 2025`;
+
+      const results = await braveSearch(searchQuery, 10);
+      setSearchResults(results);
+    } catch (err) {
+      console.error('Error fetching procedure insights:', err);
+      setError('Failed to fetch latest insights. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
   if (!procedure) return null;
-  
-  // Generate random related procedures based on the current procedure's category
-  // In a real application, this would come from the backend
-  const getRelatedProcedures = () => {
-    const category = procedure.category || '';
-    return [
-      `${category} - Alternative Option`,
-      `${category} - Complementary Procedure`,
-      `${category} - Advanced Technique`
-    ];
-  };
 
-  // Create fake historical data for the market growth visualization
-  // In a real application, this would come from the backend
-  const getHistoricalData = () => {
-    const baseGrowth = procedure.yearly_growth_percentage || 5;
-    const currentYear = new Date().getFullYear();
-    return [
-      { year: currentYear - 4, growth: (baseGrowth - 1.5).toFixed(1) },
-      { year: currentYear - 3, growth: (baseGrowth - 0.8).toFixed(1) },
-      { year: currentYear - 2, growth: (baseGrowth - 0.2).toFixed(1) },
-      { year: currentYear - 1, growth: baseGrowth.toFixed(1) },
-      { year: currentYear, growth: (baseGrowth + 0.3).toFixed(1) },
-      { year: currentYear + 1, growth: (baseGrowth + 0.7).toFixed(1) + ' (projected)' }
-    ];
-  };
+  const procedureName = procedure.name || procedure.procedure_name || 'Unknown Procedure';
+  const description = procedure.description || procedure.expanded_description || 'No description available';
+  const averageCost = procedure.average_cost_usd;
+  const growthRate = procedure.yearly_growth_percentage;
+  const marketSize = procedure.market_size_2025_usd_millions;
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="md"
+      maxWidth="lg"
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 2,
-          boxShadow: theme.shadows[10]
-        }
+          borderRadius: 3,
+          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+          overflow: 'hidden',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+        },
       }}
     >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'flex-start',
-        pb: 1
-      }}>
-        <Box>
-          <Typography variant="h5" component="div" fontWeight="medium">{procedure.name}</Typography>
-          <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 0.5 }}>
-            {procedure.category || 'Uncategorized'} • {industry.charAt(0).toUpperCase() + industry.slice(1)} Procedure
-          </Typography>
-        </Box>
-        <IconButton edge="end" color="inherit" onClick={onClose} aria-label="close">
+      {/* Header with gradient background */}
+      <Box
+        sx={{
+          background: 'linear-gradient(135deg, #0891B2 0%, #06B6D4 100%)',
+          color: 'white',
+          p: 3,
+          position: 'relative',
+        }}
+      >
+        <IconButton
+          onClick={onClose}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: 'white',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            },
+          }}
+        >
           <CloseIcon />
         </IconButton>
-      </DialogTitle>
-      
-      {/* Tabs navigation */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs 
-          value={tabValue} 
-          onChange={handleTabChange} 
-          aria-label="procedure detail tabs"
-          sx={{ px: 3 }}
-        >
-          <Tab label="Overview" {...a11yProps(0)} />
-          <Tab label="Market Data" {...a11yProps(1)} />
-          <Tab label="Related Info" {...a11yProps(2)} />
-        </Tabs>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <Avatar
+            sx={{
+              width: 56,
+              height: 56,
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            }}
+          >
+            <HospitalIcon sx={{ fontSize: 32 }} />
+          </Avatar>
+          <Box>
+            <Typography variant="h4" fontWeight="bold">
+              {procedureName}
+            </Typography>
+            <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+              {procedure.category || procedure.clinical_category || industry} Procedure
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Key metrics */}
+        <Grid container spacing={2}>
+          {averageCost && (
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <MoneyIcon />
+                <Box>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                    Average Cost
+                  </Typography>
+                  <Typography variant="h6" fontWeight="bold">
+                    ${averageCost.toLocaleString()}
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+          )}
+          {growthRate && (
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TrendingUpIcon />
+                <Box>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                    Growth Rate
+                  </Typography>
+                  <Typography variant="h6" fontWeight="bold">
+                    {growthRate > 0 ? '+' : ''}{growthRate}%
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+          )}
+          {marketSize && (
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <ScienceIcon />
+                <Box>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                    Market Size
+                  </Typography>
+                  <Typography variant="h6" fontWeight="bold">
+                    ${marketSize >= 1000 ? `${(marketSize / 1000).toFixed(1)}B` : `${marketSize}M`}
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+          )}
+        </Grid>
       </Box>
-      
-      <DialogContent dividers sx={{ p: 3 }}>
+
+      <DialogContent sx={{ backgroundColor: '#0f172a', color: 'white' }}>
+        <Tabs
+          value={tabValue}
+          onChange={handleTabChange}
+          variant="fullWidth"
+          sx={{
+            borderBottom: 1,
+            borderColor: 'divider',
+            mb: 2,
+          }}
+        >
+          <Tab label="Overview" icon={<HospitalIcon />} iconPosition="start" />
+          <Tab label="Latest Research" icon={<AIIcon />} iconPosition="start" />
+          <Tab label="Clinical Details" icon={<BiotechIcon />} iconPosition="start" />
+          <Tab label="Market Analysis" icon={<TrendingUpIcon />} iconPosition="start" />
+        </Tabs>
+
         {/* Overview Tab */}
         <TabPanel value={tabValue} index={0}>
           <Grid container spacing={3}>
-            {/* Description */}
             <Grid item xs={12}>
-              <Typography paragraph>
-                {procedure.description || 
-                  `${procedure.name} is a ${industry} procedure categorized under ${procedure.category || 'general procedures'}. 
-                  No detailed description is available for this procedure.`}
-              </Typography>
-            </Grid>
-            
-            {/* Key Metrics Cards */}
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2, height: '100%' }}>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <AttachMoneyIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography variant="subtitle2">Price</Typography>
-                </Box>
-                <Typography variant="h6">
-                  ${typeof procedure.average_cost_usd === 'number' 
-                    ? procedure.average_cost_usd.toLocaleString()
-                    : 'N/A'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  Average cost
-                </Typography>
-              </Paper>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2, height: '100%' }}>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <TrendingUpIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography variant="subtitle2">Growth</Typography>
-                </Box>
-                <Typography variant="h6">
-                  {procedure.yearly_growth_percentage 
-                    ? `${procedure.yearly_growth_percentage.toFixed(1)}%`
-                    : 'N/A'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  Annual growth rate
-                </Typography>
-              </Paper>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2, height: '100%' }}>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <CategoryIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography variant="subtitle2">Category</Typography>
-                </Box>
-                <Typography variant="h6" noWrap>
-                  {procedure.category || 'N/A'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  Primary classification
-                </Typography>
-              </Paper>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2, height: '100%' }}>
-                <Box display="flex" alignItems="center" mb={1}>
-                  {industry === 'dental' ? (
-                    <LocalHospitalIcon color="primary" sx={{ mr: 1 }} />
-                  ) : (
-                    <TimelapseIcon color="primary" sx={{ mr: 1 }} />
-                  )}
-                  <Typography variant="subtitle2">
-                    {industry === 'dental' ? 'Clinical' : 'Downtime'}
+              <Card elevation={0} sx={{ 
+                backgroundColor: 'rgba(30, 41, 59, 0.8)', 
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom sx={{ color: '#06B6D4' }}>
+                    Description
                   </Typography>
-                </Box>
-                <Typography variant="h6" noWrap>
-                  {industry === 'dental' 
-                    ? (procedure.clinical_category || 'N/A')
-                    : (procedure.downtime || 'N/A')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  {industry === 'dental' ? 'Clinical category' : 'Recovery time'}
-                </Typography>
-              </Paper>
-            </Grid>
-            
-            {/* Industry-specific details */}
-            <Grid item xs={12} sx={{ mt: 1 }}>
-              <Typography variant="h6" gutterBottom>Additional Details</Typography>
-              
-              {industry === 'dental' && (
-                <Table size="small">
-                  <TableBody>
-                    <TableRow>
-                      <TableCell><strong>CDT Code</strong></TableCell>
-                      <TableCell>{procedure.cpt_cdt_code || 'N/A'}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell><strong>Insurance Coverage</strong></TableCell>
-                      <TableCell>{procedure.insurance_coverage ? 'Typically Covered' : 'Typically Not Covered'}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              )}
-              
-              {industry === 'aesthetic' && (
-                <Table size="small">
-                  <TableBody>
-                    <TableRow>
-                      <TableCell><strong>Body Areas</strong></TableCell>
-                      <TableCell>{procedure.body_areas_applicable || 'N/A'}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell><strong>Invasiveness</strong></TableCell>
-                      <TableCell>
-                        {procedure.invasiveness || (procedure.downtime && procedure.downtime.includes('week') 
-                          ? 'Invasive' 
-                          : 'Minimally Invasive')}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              )}
-            </Grid>
-          </Grid>
-        </TabPanel>
-        
-        {/* Market Data Tab */}
-        <TabPanel value={tabValue} index={1}>
-          <Grid container spacing={3}>
-            {/* Market Size */}
-            <Grid item xs={12} md={6}>
-              <Paper elevation={0} sx={{ p: 3, bgcolor: 'background.default', borderRadius: 2 }}>
-                <Typography variant="h6" gutterBottom>Market Size</Typography>
-                <Box sx={{ display: 'flex', alignItems: 'baseline', my: 2 }}>
-                  <Typography variant="h3" component="div">
-                    {formatMarketSize(procedure.market_size_usd_millions)}
+                  <Typography variant="body1" paragraph sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+                    {description}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-                    USD
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  Total addressable market size for {procedure.name.toLowerCase()} procedures.
-                  This represents approximately {((procedure.market_size_usd_millions || 0) / 
-                    (industry === 'dental' ? 180000 : 65000) * 100).toFixed(1)}% of the overall 
-                  {industry} procedures market.
-                </Typography>
-              </Paper>
-            </Grid>
-            
-            {/* Growth Trend */}
-            <Grid item xs={12} md={6}>
-              <Paper elevation={0} sx={{ p: 3, bgcolor: 'background.default', borderRadius: 2 }}>
-                <Typography variant="h6" gutterBottom>Growth Trend</Typography>
-                <Table size="small">
-                  <TableBody>
-                    {getHistoricalData().map((item) => (
-                      <TableRow key={item.year}>
-                        <TableCell>{item.year}</TableCell>
-                        <TableCell align="right">{item.growth}%</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                  Historical and projected annual growth rates. Projections are based on market analysis and industry trends.
-                </Typography>
-              </Paper>
-            </Grid>
-            
-            {/* Key Market Drivers */}
-            <Grid item xs={12}>
-              <Paper elevation={0} sx={{ p: 3, bgcolor: 'background.default', borderRadius: 2 }}>
-                <Typography variant="h6" gutterBottom>Key Market Drivers</Typography>
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid item xs={12} md={4}>
-                    <Box sx={{ p: 2, border: `1px solid ${theme.palette.divider}`, borderRadius: 1, height: '100%' }}>
-                      <Typography variant="subtitle1" gutterBottom>Demographics</Typography>
-                      <Typography variant="body2">
-                        {industry === 'dental' 
-                          ? 'Aging population requiring more dental care and preventative treatments.'
-                          : 'Growing acceptance across all age groups, with millennials being early adopters.'}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <Box sx={{ p: 2, border: `1px solid ${theme.palette.divider}`, borderRadius: 1, height: '100%' }}>
-                      <Typography variant="subtitle1" gutterBottom>Technology</Typography>
-                      <Typography variant="body2">
-                        {industry === 'dental' 
-                          ? 'Advanced materials and digital techniques improving outcomes and reducing procedure time.'
-                          : 'Less invasive techniques and reduced recovery times expanding the potential patient base.'}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <Box sx={{ p: 2, border: `1px solid ${theme.palette.divider}`, borderRadius: 1, height: '100%' }}>
-                      <Typography variant="subtitle1" gutterBottom>Consumer Trends</Typography>
-                      <Typography variant="body2">
-                        {industry === 'dental' 
-                          ? 'Increased focus on oral health as part of overall wellness and preventative healthcare.'
-                          : 'Rising social media influence and decreased stigma around aesthetic enhancements.'}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Paper>
-            </Grid>
-          </Grid>
-        </TabPanel>
-        
-        {/* Related Info Tab */}
-        <TabPanel value={tabValue} index={2}>
-          <Grid container spacing={3}>
-            {/* Related Procedures */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" gutterBottom>Related Procedures</Typography>
-              <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {getRelatedProcedures().map((name, index) => (
-                    <Box key={index} sx={{ 
-                      p: 1.5, 
-                      borderRadius: 1, 
-                      border: `1px solid ${theme.palette.divider}`,
-                      '&:hover': { bgcolor: 'action.hover', cursor: 'pointer' }
-                    }}>
-                      <Typography variant="body2">{name}</Typography>
-                    </Box>
-                  ))}
-                </Box>
-              </Paper>
-            </Grid>
-            
-            {/* Top Providers/Companies */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" gutterBottom>Top Providers</Typography>
-              <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
-                <Table size="small">
-                  <TableBody>
-                    {['Company A', 'Company B', 'Company C'].map((company, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          <Typography variant="body2">{company}</Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Chip 
-                            label={`${Math.floor(Math.random() * 20) + 10}% market share`}
-                            size="small"
-                            variant="outlined"
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontSize: '0.75rem' }}>
-                  * Market share data is simulated and for demonstration purposes only
-                </Typography>
-              </Paper>
-            </Grid>
-            
-            {/* Recommended Resources */}
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>Recommended Resources</Typography>
-              <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
-                <Grid container spacing={2}>
-                  {[1, 2, 3].map((i) => (
-                    <Grid item xs={12} key={i}>
-                      <Box sx={{ 
-                        p: 2, 
-                        borderRadius: 1, 
-                        border: `1px solid ${theme.palette.divider}`,
-                        '&:hover': { bgcolor: 'action.hover', cursor: 'pointer' }
-                      }}>
-                        <Typography variant="subtitle2">
-                          {industry === 'dental' 
-                            ? `Latest research on ${procedure.name.toLowerCase()} techniques` 
-                            : `${procedure.name} trends for ${new Date().getFullYear()}`}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                          {industry === 'dental' 
-                            ? 'Journal of Advanced Dental Procedures' 
-                            : 'Aesthetic Procedures Review'} • {new Date().toLocaleDateString()}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Paper>
+                </CardContent>
+              </Card>
             </Grid>
 
-            {/* Real-time News */}
+            {industry === 'dental' && procedure.procedure_duration_min && (
+              <Grid item xs={12} sm={6}>
+                <Card elevation={0} sx={{ 
+                  backgroundColor: 'rgba(30, 41, 59, 0.8)', 
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <TimerIcon sx={{ color: '#06B6D4' }} />
+                      <Typography variant="h6" sx={{ color: 'white' }}>Procedure Duration</Typography>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: '#06B6D4' }}>
+                      {procedure.procedure_duration_min} min
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
+            {procedure.patient_satisfaction_score && (
+              <Grid item xs={12} sm={6}>
+                <Card elevation={0} sx={{ 
+                  backgroundColor: 'rgba(30, 41, 59, 0.8)', 
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <CheckIcon sx={{ color: '#10B981' }} />
+                      <Typography variant="h6" sx={{ color: 'white' }}>Patient Satisfaction</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Typography variant="h4" sx={{ color: '#10B981' }}>
+                        {procedure.patient_satisfaction_score}/5
+                      </Typography>
+                      <LinearProgress
+                        variant="determinate"
+                        value={(procedure.patient_satisfaction_score / 5) * 100}
+                        sx={{ 
+                          flexGrow: 1, 
+                          height: 8, 
+                          borderRadius: 4,
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          '& .MuiLinearProgress-bar': {
+                            backgroundColor: '#10B981'
+                          }
+                        }}
+                      />
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
+            {procedure.risks && (
+              <Grid item xs={12}>
+                <Alert severity="warning" icon={<WarningIcon />}>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    Risks & Considerations
+                  </Typography>
+                  <Typography variant="body2">{procedure.risks}</Typography>
+                </Alert>
+              </Grid>
+            )}
+          </Grid>
+        </TabPanel>
+
+        {/* Latest Research Tab */}
+        <TabPanel value={tabValue} index={1}>
+          {loading ? (
+            <Box>
+              {[1, 2, 3].map((i) => (
+                <Box key={i} sx={{ mb: 2 }}>
+                  <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 2 }} />
+                </Box>
+              ))}
+            </Box>
+          ) : error ? (
+            <Alert severity="error">{error}</Alert>
+          ) : searchResults && searchResults.web && searchResults.web.results ? (
+            <List>
+              {searchResults.web.results.map((result: any, index: number) => (
+                <Paper key={index} elevation={0} sx={{ 
+                  mb: 2, 
+                  p: 2, 
+                  backgroundColor: 'rgba(30, 41, 59, 0.8)', 
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <ListItem alignItems="flex-start" disablePadding>
+                    <ListItemIcon>
+                      <Avatar sx={{ bgcolor: 'primary.light' }}>
+                        <ArticleIcon />
+                      </Avatar>
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Link
+                          href={result.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{
+                            textDecoration: 'none',
+                            color: 'primary.main',
+                            fontWeight: 600,
+                            '&:hover': { textDecoration: 'underline' },
+                          }}
+                        >
+                          {result.title}
+                          <OpenInNewIcon sx={{ ml: 0.5, fontSize: 16, verticalAlign: 'middle' }} />
+                        </Link>
+                      }
+                      secondary={
+                        <Box>
+                          <Typography variant="body2" paragraph sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                            {result.description}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                            {new URL(result.url).hostname}
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                </Paper>
+              ))}
+            </List>
+          ) : (
+            <Typography>No research results available</Typography>
+          )}
+
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <Button
+              variant="outlined"
+              startIcon={<SearchIcon />}
+              onClick={fetchProcedureInsights}
+              disabled={loading}
+            >
+              Refresh Research
+            </Button>
+          </Box>
+        </TabPanel>
+
+        {/* Clinical Details Tab */}
+        <TabPanel value={tabValue} index={2}>
+          <Grid container spacing={3}>
+            {industry === 'dental' && (
+              <>
+                {procedure.cpt_cdt_code && (
+                  <Grid item xs={12} sm={6}>
+                    <Card elevation={0} sx={{ 
+                      backgroundColor: 'rgba(30, 41, 59, 0.8)', 
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(10px)'
+                    }}>
+                      <CardContent>
+                        <Typography variant="subtitle2" gutterBottom sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                          CDT Code
+                        </Typography>
+                        <Typography variant="h5" fontWeight="bold" sx={{ color: 'white' }}>
+                          {procedure.cpt_cdt_code}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
+                {procedure.complexity && (
+                  <Grid item xs={12} sm={6}>
+                    <Card elevation={0} sx={{ 
+                      backgroundColor: 'rgba(30, 41, 59, 0.8)', 
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(10px)'
+                    }}>
+                      <CardContent>
+                        <Typography variant="subtitle2" gutterBottom sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                          Complexity Level
+                        </Typography>
+                        <Chip
+                          label={procedure.complexity}
+                          sx={{ 
+                            fontSize: '1.1rem', 
+                            padding: '6px 16px',
+                            backgroundColor: procedure.complexity === 'High' ? '#EF4444' :
+                                           procedure.complexity === 'Medium' ? '#F59E0B' : '#10B981',
+                            color: 'white'
+                          }}
+                        />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
+                {procedure.recovery_time_days && (
+                  <Grid item xs={12}>
+                    <Card elevation={0} sx={{ 
+                      backgroundColor: 'rgba(30, 41, 59, 0.8)', 
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(10px)'
+                    }}>
+                      <CardContent>
+                        <Typography variant="subtitle2" gutterBottom sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                          Recovery Time
+                        </Typography>
+                        <Typography variant="h5" fontWeight="bold" sx={{ color: 'white' }}>
+                          {procedure.recovery_time_days} days
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
+              </>
+            )}
+
+            {industry === 'aesthetic' && (
+              <>
+                {procedure.downtime && (
+                  <Grid item xs={12} sm={6}>
+                    <Card elevation={0} sx={{ 
+                      backgroundColor: 'rgba(30, 41, 59, 0.8)', 
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(10px)'
+                    }}>
+                      <CardContent>
+                        <Typography variant="subtitle2" gutterBottom sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                          Downtime
+                        </Typography>
+                        <Typography variant="h6" sx={{ color: 'white' }}>{procedure.downtime}</Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
+                {procedure.number_of_sessions && (
+                  <Grid item xs={12} sm={6}>
+                    <Card elevation={0} sx={{ 
+                      backgroundColor: 'rgba(30, 41, 59, 0.8)', 
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(10px)'
+                    }}>
+                      <CardContent>
+                        <Typography variant="subtitle2" gutterBottom sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                          Number of Sessions
+                        </Typography>
+                        <Typography variant="h5" fontWeight="bold" sx={{ color: 'white' }}>
+                          {procedure.number_of_sessions}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
+                {procedure.results_duration && (
+                  <Grid item xs={12} sm={6}>
+                    <Card elevation={0} sx={{ 
+                      backgroundColor: 'rgba(30, 41, 59, 0.8)', 
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(10px)'
+                    }}>
+                      <CardContent>
+                        <Typography variant="subtitle2" gutterBottom sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                          Results Duration
+                        </Typography>
+                        <Typography variant="h6" sx={{ color: 'white' }}>{procedure.results_duration}</Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
+                {procedure.body_areas_applicable && (
+                  <Grid item xs={12}>
+                    <Card elevation={0} sx={{ 
+                      backgroundColor: 'rgba(30, 41, 59, 0.8)', 
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(10px)'
+                    }}>
+                      <CardContent>
+                        <Typography variant="subtitle2" gutterBottom sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                          Applicable Body Areas
+                        </Typography>
+                        <Typography variant="body1" sx={{ color: 'white' }}>{procedure.body_areas_applicable}</Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
+              </>
+            )}
+
+            {procedure.contraindications && (
+              <Grid item xs={12}>
+                <Alert severity="info">
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    Contraindications
+                  </Typography>
+                  <Typography variant="body2">{procedure.contraindications}</Typography>
+                </Alert>
+              </Grid>
+            )}
+          </Grid>
+        </TabPanel>
+
+        {/* Market Analysis Tab */}
+        <TabPanel value={tabValue} index={3}>
+          <Grid container spacing={3}>
             <Grid item xs={12}>
-              <RealtimeNewsSection
-                procedureId={String(procedure.id)}
-                procedureName={procedure.name}
-                industry={industry}
-                limit={3}
-              />
+              <Card elevation={0} sx={{ 
+                backgroundColor: 'rgba(6, 182, 212, 0.1)', 
+                border: '1px solid rgba(6, 182, 212, 0.3)',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <PsychologyIcon sx={{ color: '#06B6D4' }} />
+                    <Typography variant="h6" sx={{ color: 'white' }}>AI Market Insights</Typography>
+                  </Box>
+                  <Typography variant="body1" paragraph sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+                    Based on current market trends, {procedureName} shows {growthRate > 5 ? 'strong' : 'moderate'} growth
+                    potential with an annual growth rate of {growthRate}%.
+                  </Typography>
+                  {marketSize && (
+                    <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+                      The current market size is estimated at ${marketSize >= 1000 ? `${(marketSize / 1000).toFixed(1)} billion` : `${marketSize} million`},
+                      making it a {marketSize >= 500 ? 'significant' : 'growing'} segment in the {industry} industry.
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Card elevation={0} sx={{ 
+                backgroundColor: 'rgba(30, 41, 59, 0.8)', 
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom sx={{ color: 'white' }}>
+                    Market Drivers
+                  </Typography>
+                  <List dense>
+                    <ListItem>
+                      <ListItemIcon>
+                        <CheckIcon sx={{ color: '#10B981' }} />
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary="Increasing patient awareness" 
+                        primaryTypographyProps={{ sx: { color: 'rgba(255, 255, 255, 0.9)' } }}
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemIcon>
+                        <CheckIcon sx={{ color: '#10B981' }} />
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary="Technological advancements" 
+                        primaryTypographyProps={{ sx: { color: 'rgba(255, 255, 255, 0.9)' } }}
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemIcon>
+                        <CheckIcon sx={{ color: '#10B981' }} />
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary="Growing disposable income" 
+                        primaryTypographyProps={{ sx: { color: 'rgba(255, 255, 255, 0.9)' } }}
+                      />
+                    </ListItem>
+                  </List>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Card elevation={0} sx={{ 
+                backgroundColor: 'rgba(30, 41, 59, 0.8)', 
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom sx={{ color: 'white' }}>
+                    Future Outlook
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                    The {procedureName} market is expected to continue its growth trajectory,
+                    driven by technological innovations and increasing demand for
+                    {industry === 'aesthetic' ? ' minimally invasive procedures' : ' preventive dental care'}.
+                  </Typography>
+                </CardContent>
+              </Card>
             </Grid>
           </Grid>
         </TabPanel>
       </DialogContent>
-      
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button 
-          variant="outlined" 
-          onClick={onClose}
-          size="medium"
-        >
+
+      <DialogActions sx={{ p: 3, backgroundColor: '#0f172a', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <Button onClick={onClose} variant="outlined">
           Close
         </Button>
-        <Button 
-          variant="contained" 
-          color="primary"
-          size="medium"
+        <Button
+          variant="contained"
+          startIcon={<AIIcon />}
+          onClick={() => {
+            // Could trigger more detailed analysis or export
+            console.log('Generate detailed report for:', procedureName);
+          }}
         >
-          Export Data
+          Generate Full Report
         </Button>
       </DialogActions>
     </Dialog>

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import MarketSizeOverview from './MarketSizeOverview';
+import ProcedureDetailsModal from './ProcedureDetailsModal';
+import CompanyDetailsModal from './CompanyDetailsModal';
 import { 
   Container,
   Grid,
@@ -34,6 +36,10 @@ import {
   useTheme,
   useMediaQuery as muiUseMediaQuery
 } from '@mui/material';
+import { 
+  Info as InfoIcon,
+  OpenInNew as OpenInNewIcon 
+} from '@mui/icons-material';
 import { supabase } from '../../services/supabaseClient';
 
 // Utility function to format market size (millions/billions)
@@ -195,6 +201,12 @@ const Dashboard: React.FC = () => {
   
   // Error states
   const [error, setError] = useState<string | null>(null);
+  
+  // Modal states
+  const [selectedProcedure, setSelectedProcedure] = useState<DentalProcedure | AestheticProcedure | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [procedureModalOpen, setProcedureModalOpen] = useState(false);
+  const [companyModalOpen, setCompanyModalOpen] = useState(false);
   
   // Derived states
   const theme = useTheme();
@@ -532,8 +544,23 @@ const Dashboard: React.FC = () => {
                     <TableBody>
                       {currentProcedures.length > 0 ? (
                         currentProcedures.map((procedure, index) => (
-                          <TableRow key={`${selectedIndustry}-${procedure.id || index}`} hover>
-                            <TableCell>{procedure.name || procedure.procedure_name || 'N/A'}</TableCell>
+                          <TableRow 
+                            key={`${selectedIndustry}-${procedure.id || index}`} 
+                            hover
+                            onClick={() => {
+                              setSelectedProcedure(procedure);
+                              setProcedureModalOpen(true);
+                            }}
+                            sx={{ cursor: 'pointer' }}
+                          >
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {procedure.name || procedure.procedure_name || 'N/A'}
+                                <IconButton size="small" color="primary">
+                                  <InfoIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
+                            </TableCell>
                             <TableCell>
                               {procedure.description && procedure.description.length > 100 
                                 ? `${procedure.description.substring(0, 100)}...`
@@ -615,12 +642,32 @@ const Dashboard: React.FC = () => {
                         </TableHead>
                         <TableBody>
                           {paginatedCompanies.map((company: Company, index: number) => (
-                            <TableRow key={`${selectedIndustry}-${company.id || index}`} hover>
-                              <TableCell>{company.name || 'N/A'}</TableCell>
+                            <TableRow 
+                              key={`${selectedIndustry}-${company.id || index}`} 
+                              hover
+                              onClick={() => {
+                                setSelectedCompany(company);
+                                setCompanyModalOpen(true);
+                              }}
+                              sx={{ cursor: 'pointer' }}
+                            >
+                              <TableCell>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {company.name || 'N/A'}
+                                  <IconButton size="small" color="secondary">
+                                    <InfoIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </TableCell>
                               <TableCell>{company.description || 'N/A'}</TableCell>
                               <TableCell>
                                 {company.website ? (
-                                  <a href={company.website} target="_blank" rel="noopener noreferrer">
+                                  <a 
+                                    href={company.website} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
                                     {company.website.replace(/^https?:\/\//i, '')}
                                   </a>
                                 ) : 'N/A'}
@@ -646,6 +693,32 @@ const Dashboard: React.FC = () => {
           </Grid>
         </Grid>
       </Box>
+      
+      {/* Procedure Details Modal */}
+      {selectedProcedure && (
+        <ProcedureDetailsModal
+          open={procedureModalOpen}
+          onClose={() => {
+            setProcedureModalOpen(false);
+            setSelectedProcedure(null);
+          }}
+          procedure={selectedProcedure}
+          industry={selectedIndustry}
+        />
+      )}
+      
+      {/* Company Details Modal */}
+      {selectedCompany && (
+        <CompanyDetailsModal
+          open={companyModalOpen}
+          onClose={() => {
+            setCompanyModalOpen(false);
+            setSelectedCompany(null);
+          }}
+          company={selectedCompany}
+          industry={selectedIndustry}
+        />
+      )}
     </Container>
   );
 };
