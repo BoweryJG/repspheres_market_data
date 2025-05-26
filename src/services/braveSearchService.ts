@@ -1,8 +1,6 @@
 import axios from 'axios';
 
-const NEWS_PROXY_URL = process.env.NODE_ENV === 'production'
-  ? 'https://repspheres-news-proxy.onrender.com'
-  : 'http://localhost:3001';
+const NEWS_PROXY_URL = import.meta.env.VITE_API_URL;
 
 export async function search(query: string, limit: number = 10): Promise<any> {
   try {
