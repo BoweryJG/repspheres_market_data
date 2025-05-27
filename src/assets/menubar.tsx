@@ -18,6 +18,7 @@ import LanguageIcon from '@mui/icons-material/Language';
 import LoginIcon from '@mui/icons-material/Login';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import BusinessCenter from '@mui/icons-material/BusinessCenter';
 import MemoryIcon from '@mui/icons-material/Memory';
 import { useOrbContext, useColorMode } from './OrbContextProvider';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
@@ -104,7 +105,11 @@ const ThemeToggle = () => {
   );
 };
 
-export default function NavBar() {
+interface NavBarProps {
+  onSalesModeToggle?: () => void;
+}
+
+export default function NavBar({ onSalesModeToggle }: NavBarProps) {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [menuAnchorEl, setMenuAnchorEl] = React.useState<HTMLElement | null>(null);
   const [loginOpen, setLoginOpen] = React.useState(false);
@@ -439,6 +444,27 @@ export default function NavBar() {
                   <Box component="span" className="buttonText">{link.label}</Box>
                 </Button>
               ))}
+              
+              {/* Sales Mode Toggle */}
+              {onSalesModeToggle && (
+                <>
+                  <Divider orientation="vertical" flexItem sx={{ mx: 2, bgcolor: 'rgba(255,255,255,0.2)' }} />
+                  <Button
+                    onClick={onSalesModeToggle}
+                    sx={{
+                      ...navButtonStyles,
+                      background: 'linear-gradient(90deg, #FF6B6B 0%, #4ECDC4 100%)',
+                      '&:hover': {
+                        background: 'linear-gradient(90deg, #FF5252 0%, #45B7B8 100%)',
+                        transform: 'scale(1.05)',
+                      },
+                    }}
+                    startIcon={<BusinessCenter />}
+                  >
+                    Sales Mode
+                  </Button>
+                </>
+              )}
             </Box>
           </Box>
         )}
