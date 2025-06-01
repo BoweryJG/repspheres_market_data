@@ -142,31 +142,31 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
   return (
     <Card elevation={3}>
       <CardContent>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6" gutterBottom>
             Market Size Overview - {selectedIndustry.charAt(0).toUpperCase() + selectedIndustry.slice(1)} Industry
           </Typography>
           <Tooltip title="Market sizes are shown in millions/billions of US dollars. Data is based on latest industry research.">
             <InfoOutlinedIcon color="action" fontSize="small" />
           </Tooltip>
-        </div>
+        </Box>
         
         <Grid container spacing={3}>
           {/* Total Market Size */}
           <Grid item xs={12} md={4}>
             <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.default', height: '100%', borderRadius: 2 }}>
-              <div style={{ display: "flex", alignItems: "center", marginBottom: "8px" }}>
+              <Box display="flex" alignItems="center" mb={1}>
                 <AttachMoneyIcon color="primary" sx={{ mr: 1 }} />
                 <Typography variant="subtitle2" color="text.secondary">Total Market Size</Typography>
-              </div>
-              <div style={{ display: "flex", alignItems: "baseline" }}>
+              </Box>
+              <Box display="flex" alignItems="baseline">
                 <Typography variant="h4" sx={{ mt: 1, mb: 1 }}>
                   {formatMarketSize(animatedMarketSize)}
                 </Typography>
                 <Tooltip title={formatMarketSizeDetailed(animatedMarketSize)}>
                   <InfoOutlinedIcon sx={{ ml: 1, fontSize: '0.9rem', color: 'text.secondary', cursor: 'help' }} />
                 </Tooltip>
-              </div>
+              </Box>
               <Typography variant="body2" color="text.secondary">
                 Across {currentProcedures.length} procedures
               </Typography>
@@ -176,10 +176,10 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
           {/* Avg Growth Rate */}
           <Grid item xs={12} md={4}>
             <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.default', height: '100%', borderRadius: 2 }}>
-              <div style={{ display: "flex", alignItems: "center", marginBottom: "8px" }}>
+              <Box display="flex" alignItems="center" mb={1}>
                 <TrendingUpIcon color="primary" sx={{ mr: 1 }} />
                 <Typography variant="subtitle2" color="text.secondary">Average Annual Growth</Typography>
-              </div>
+              </Box>
               <Typography variant="h4" sx={{ mt: 1, mb: 1 }}>
                 {formatGrowthRate(averageGrowthRate)}
               </Typography>
@@ -193,10 +193,10 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
           {/* Procedure Count */}
           <Grid item xs={12} md={4}>
             <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.default', height: '100%', borderRadius: 2 }}>
-              <div style={{ display: "flex", alignItems: "center", marginBottom: "8px" }}>
+              <Box display="flex" alignItems="center" mb={1}>
                 <PieChartIcon color="primary" sx={{ mr: 1 }} />
                 <Typography variant="subtitle2" color="text.secondary">Market Composition</Typography>
-              </div>
+              </Box>
               <Typography variant="h4" sx={{ mt: 1, mb: 1 }}>
                 {categoryMarketSizes.length} Categories
               </Typography>
@@ -214,22 +214,22 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
           Top Categories by Market Size
         </Typography>
         
-        <div style={{ marginTop: '16px' }}>
+        <Box sx={{ mt: 2 }}>
           {categoryMarketSizes.map(([category, size], index) => (
-            <div key={category} style={{ marginBottom: '16px' }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+            <Box key={category} sx={{ mb: 2 }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
                 <Typography variant="body2">
                   {category}
                 </Typography>
-                <div style={{ display: "flex", alignItems: "center" }}>
+                <Box display="flex" alignItems="center">
                   <Typography variant="body2" fontWeight="medium">
                     {formatMarketSize(size)}
                   </Typography>
                   <Tooltip title={formatMarketSizeDetailed(size)}>
                     <InfoOutlinedIcon sx={{ ml: 1, fontSize: '0.9rem', color: 'text.secondary', cursor: 'help' }} />
                   </Tooltip>
-                </div>
-              </div>
+                </Box>
+              </Box>
               <LinearProgress
                 variant="determinate"
                 value={(size / largestCategorySize) * 100}
@@ -249,9 +249,9 @@ export const MarketSizeOverview: React.FC<MarketSizeOverviewProps> = ({
                   }
                 }}
               />
-            </div>
+            </Box>
           ))}
-        </div>
+        </Box>
         
         <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
           Note: Market sizes are in US dollars. Source: Latest industry research data, 2025.
